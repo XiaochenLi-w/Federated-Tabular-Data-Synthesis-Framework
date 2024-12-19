@@ -1,0 +1,81 @@
+{
+    "columns": [
+        {
+            "min": 3.8,
+            "max": 14.2,
+            "name": "fixed acidity",
+            "type": "continuous"
+        },
+        {
+            "min": 0.08,
+            "max": 1.1,
+            "name": "volatile acidity",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 1.66,
+            "name": "citric acid",
+            "type": "continuous"
+        },
+        {
+            "min": 0.6,
+            "max": 65.8,
+            "name": "residual sugar",
+            "type": "continuous"
+        },
+        {
+            "min": 0.009,
+            "max": 0.346,
+            "name": "chlorides",
+            "type": "continuous"
+        },
+        {
+            "min": 2.0,
+            "max": 289.0,
+            "name": "free sulfur dioxide",
+            "type": "continuous"
+        },
+        {
+            "min": 9.0,
+            "max": 440.0,
+            "name": "total sulfur dioxide",
+            "type": "continuous"
+        },
+        {
+            "min": 0.98711,
+            "max": 1.03898,
+            "name": "density",
+            "type": "continuous"
+        },
+        {
+            "min": 2.72,
+            "max": 3.82,
+            "name": "pH",
+            "type": "continuous"
+        },
+        {
+            "min": 0.22,
+            "max": 1.08,
+            "name": "sulphates",
+            "type": "continuous"
+        },
+        {
+            "min": 8.0,
+            "max": 14.2,
+            "name": "alcohol",
+            "type": "continuous"
+        },
+        {
+            "min": 3,
+            "max": 9,
+            "name": "label",
+            "type": "continuous"
+        }
+    ],
+    "task": "regression",
+    "train_size": 3134,
+    "val_size": 784,
+    "test_size": 980,
+    "label": "quality"
+}

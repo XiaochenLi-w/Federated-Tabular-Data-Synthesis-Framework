@@ -1,0 +1,195 @@
+{
+    "columns": [
+        {
+            "min": 0,
+            "max": 1705,
+            "name": "X_Minimum",
+            "type": "continuous"
+        },
+        {
+            "min": 4,
+            "max": 1713,
+            "name": "X_Maximum",
+            "type": "continuous"
+        },
+        {
+            "min": 6712,
+            "max": 12987661,
+            "name": "Y_Minimum",
+            "type": "continuous"
+        },
+        {
+            "min": 6724,
+            "max": 12987692,
+            "name": "Y_Maximum",
+            "type": "continuous"
+        },
+        {
+            "min": 2,
+            "max": 152655,
+            "name": "Pixels_Areas",
+            "type": "continuous"
+        },
+        {
+            "min": 2,
+            "max": 10449,
+            "name": "X_Perimeter",
+            "type": "continuous"
+        },
+        {
+            "min": 1,
+            "max": 18152,
+            "name": "Y_Perimeter",
+            "type": "continuous"
+        },
+        {
+            "min": 250,
+            "max": 11591414,
+            "name": "Sum_of_Luminosity",
+            "type": "continuous"
+        },
+        {
+            "min": 0,
+            "max": 203,
+            "name": "Minimum_of_Luminosity",
+            "type": "continuous"
+        },
+        {
+            "min": 37,
+            "max": 253,
+            "name": "Maximum_of_Luminosity",
+            "type": "continuous"
+        },
+        {
+            "min": 1227,
+            "max": 1794,
+            "name": "Length_of_Conveyer",
+            "type": "continuous"
+        },
+        {
+            "i2s": [
+                "0",
+                "1"
+            ],
+            "name": "TypeOfSteel_A300",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0",
+                "1"
+            ],
+            "name": "TypeOfSteel_A400",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "min": 40,
+            "max": 300,
+            "name": "Steel_Plate_Thickness",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 0.9952,
+            "name": "Edges_Index",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 0.9439,
+            "name": "Empty_Index",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0083,
+            "max": 1.0,
+            "name": "Square_Index",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0015,
+            "max": 0.8759,
+            "name": "Outside_X_Index",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0144,
+            "max": 1.0,
+            "name": "Edges_X_Index",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0484,
+            "max": 1.0,
+            "name": "Edges_Y_Index",
+            "type": "continuous"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "0.5",
+                "1.0"
+            ],
+            "name": "Outside_Global_Index",
+            "size": 3,
+            "type": "categorical"
+        },
+        {
+            "min": 0.301,
+            "max": 5.1837,
+            "name": "LogOfAreas",
+            "type": "continuous"
+        },
+        {
+            "min": 0.301,
+            "max": 3.0741,
+            "name": "Log_X_Index",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 4.2587,
+            "name": "Log_Y_Index",
+            "type": "continuous"
+        },
+        {
+            "min": -0.991,
+            "max": 0.9917,
+            "name": "Orientation_Index",
+            "type": "continuous"
+        },
+        {
+            "min": -0.9989,
+            "max": 0.6421,
+            "name": "Luminosity_Index",
+            "type": "continuous"
+        },
+        {
+            "min": 0.119,
+            "max": 1.0,
+            "name": "SigmoidOfAreas",
+            "type": "continuous"
+        },
+        {
+            "i2s": [
+                "Bumps",
+                "Dirtiness",
+                "K_Scatch",
+                "Other_Faults",
+                "Pastry",
+                "Stains",
+                "Z_Scratch"
+            ],
+            "name": "label",
+            "size": 7,
+            "type": "categorical"
+        }
+    ],
+    "task": "multiclass_classification",
+    "train_size": 1241,
+    "val_size": 311,
+    "test_size": 389,
+    "label": "label"
+}

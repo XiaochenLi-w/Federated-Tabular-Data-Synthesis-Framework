@@ -1,0 +1,25 @@
+# template privsyn config file
+
+[path_params]
+meta_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/datasets/adult/adult_test/adult.json"
+raw_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/datasets/adult/adult_test/adult.csv"
+train_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/datasets/adult/train.csv"
+val_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/datasets/adult/val.csv"
+test_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/datasets/adult/test.csv"
+loss_record = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/adult/privsyn/loss.csv"
+out_model = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/adult/privsyn/privsyn.pkl"
+out_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/adult/privsyn/adult.csv"
+fidelity_result = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/abalone/privsyn/fidelity_result.csv"
+fidelity_train_result = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/abalone/privsyn/fidelity_train_result.csv"
+privacy_result = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/abalone/privsyn/privacy_result.csv"
+utility_result = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/abalone/privsyn/utility_result.csv"
+
+[model_params]
+epsilon = 100000000.0 # infinite privacy budget
+delta = 3.4498908254380166e-11
+max_bins = 100
+update_iterations = 50
+
+
+[sample_params]
+num_samples = 0 # sample the same number of samples as the train+val data

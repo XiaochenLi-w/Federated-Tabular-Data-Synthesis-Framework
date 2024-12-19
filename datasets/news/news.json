@@ -1,0 +1,411 @@
+{
+    "columns": [
+        {
+            "min": 8.0,
+            "max": 731.0,
+            "name": "timedelta",
+            "type": "continuous"
+        },
+        {
+            "min": 2.0,
+            "max": 23.0,
+            "name": "n_tokens_title",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 8474.0,
+            "name": "n_tokens_content",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 701.0,
+            "name": "n_unique_tokens",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 1042.0,
+            "name": "n_non_stop_words",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 650.0,
+            "name": "n_non_stop_unique_tokens",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 304.0,
+            "name": "num_hrefs",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 116.0,
+            "name": "num_self_hrefs",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 128.0,
+            "name": "num_imgs",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 91.0,
+            "name": "num_videos",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 8.04153354633,
+            "name": "average_token_length",
+            "type": "continuous"
+        },
+        {
+            "min": 1.0,
+            "max": 10.0,
+            "name": "num_keywords",
+            "type": "continuous"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "data_channel_is_lifestyle",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "data_channel_is_entertainment",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "data_channel_is_bus",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "data_channel_is_socmed",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "data_channel_is_tech",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "data_channel_is_world",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "min": -1.0,
+            "max": 377.0,
+            "name": "kw_min_min",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 298400.0,
+            "name": "kw_max_min",
+            "type": "continuous"
+        },
+        {
+            "min": -1.0,
+            "max": 42827.8571429,
+            "name": "kw_avg_min",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 843300.0,
+            "name": "kw_min_max",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 843300.0,
+            "name": "kw_max_max",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 843300.0,
+            "name": "kw_avg_max",
+            "type": "continuous"
+        },
+        {
+            "min": -1.0,
+            "max": 3613.0398195,
+            "name": "kw_min_avg",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 298400.0,
+            "name": "kw_max_avg",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 43567.6599458,
+            "name": "kw_avg_avg",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 843300.0,
+            "name": "self_reference_min_shares",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 843300.0,
+            "name": "self_reference_max_shares",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 843300.0,
+            "name": "self_reference_avg_sharess",
+            "type": "continuous"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "weekday_is_monday",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "weekday_is_tuesday",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "weekday_is_wednesday",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "weekday_is_thursday",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "weekday_is_friday",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "weekday_is_saturday",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "weekday_is_sunday",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "0.0",
+                "1.0"
+            ],
+            "name": "is_weekend",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "min": 0.0,
+            "max": 0.926994384393,
+            "name": "LDA_00",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 0.925946986138,
+            "name": "LDA_01",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 0.919999088666,
+            "name": "LDA_02",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 0.926533782685,
+            "name": "LDA_03",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 0.927190809258,
+            "name": "LDA_04",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 1.0,
+            "name": "global_subjectivity",
+            "type": "continuous"
+        },
+        {
+            "min": -0.39375,
+            "max": 0.727840909091,
+            "name": "global_sentiment_polarity",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 0.155487804878,
+            "name": "global_rate_positive_words",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 0.184931506849,
+            "name": "global_rate_negative_words",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 1.0,
+            "name": "rate_positive_words",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 1.0,
+            "name": "rate_negative_words",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 1.0,
+            "name": "avg_positive_polarity",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 1.0,
+            "name": "min_positive_polarity",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 1.0,
+            "name": "max_positive_polarity",
+            "type": "continuous"
+        },
+        {
+            "min": -1.0,
+            "max": 0.0,
+            "name": "avg_negative_polarity",
+            "type": "continuous"
+        },
+        {
+            "min": -1.0,
+            "max": 0.0,
+            "name": "min_negative_polarity",
+            "type": "continuous"
+        },
+        {
+            "min": -1.0,
+            "max": 0.0,
+            "name": "max_negative_polarity",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 1.0,
+            "name": "title_subjectivity",
+            "type": "continuous"
+        },
+        {
+            "min": -1.0,
+            "max": 1.0,
+            "name": "title_sentiment_polarity",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 0.5,
+            "name": "abs_title_subjectivity",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 1.0,
+            "name": "abs_title_sentiment_polarity",
+            "type": "continuous"
+        },
+        {
+            "min": 1,
+            "max": 843300,
+            "name": "label",
+            "type": "continuous"
+        }
+    ],
+    "task": "regression",
+    "train_size": 25372,
+    "val_size": 6343,
+    "test_size": 7929,
+    "label": "shares"
+}
