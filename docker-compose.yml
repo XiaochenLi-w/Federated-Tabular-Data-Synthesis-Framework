@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  datascience:
+    build: .
+    volumes:
+      - .:/app/project
+    environment:
+      - PYTHONPATH=/app/project
+    working_dir: /app/project
+    # Enable interactive mode
+    stdin_open: true
+    tty: true 
