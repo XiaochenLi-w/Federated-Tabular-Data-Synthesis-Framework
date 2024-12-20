@@ -1,7 +1,7 @@
 # this file contains the basic configuration of the project
 
 # root directory
-ROOT_DIR = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/"
+ROOT_DIR = "C:/Users/xiaoc/OneDrive\文档/fed_privsyn\privsyn_git/Tabular-Data-Synthesis-Framework/"
 
 # tuned parameters path
 TUNED_PARAMS_PATH = ROOT_DIR + "/exp"

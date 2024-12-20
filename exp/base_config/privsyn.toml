@@ -1,18 +1,18 @@
 # template privsyn config file
 
 [path_params]
-meta_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/datasets/adult/adult_test/adult.json"
-raw_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/datasets/adult/adult_test/adult.csv"
-train_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/datasets/adult/train.csv"
-val_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/datasets/adult/val.csv"
-test_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/datasets/adult/test.csv"
-loss_record = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/adult/privsyn/loss.csv"
-out_model = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/adult/privsyn/privsyn.pkl"
-out_data = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/adult/privsyn/adult.csv"
-fidelity_result = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/abalone/privsyn/fidelity_result.csv"
-fidelity_train_result = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/abalone/privsyn/fidelity_train_result.csv"
-privacy_result = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/abalone/privsyn/privacy_result.csv"
-utility_result = "C:/Users/xiaoc/OneDrive/文档/fed_privsyn/SynMeter-main/SynMeter-main/exp/abalone/privsyn/utility_result.csv"
+meta_data = "./datasets/adult/adult_test/adult.json"
+raw_data = "./datasets/adult/adult_test/adult.csv"
+train_data = "./datasets/adult/train.csv"
+val_data = "./datasets/adult/val.csv"
+test_data = "./datasets/adult/test.csv"
+loss_record = "./exp/adult/privsyn/loss.csv"
+out_model = "./exp/adult/privsyn/privsyn.pkl"
+out_data = "./exp/adult/privsyn/adult.csv"
+fidelity_result = "./exp/abalone/privsyn/fidelity_result.csv"
+fidelity_train_result = "./exp/abalone/privsyn/fidelity_train_result.csv"
+privacy_result = "./exp/abalone/privsyn/privacy_result.csv"
+utility_result = "./exp/abalone/privsyn/utility_result.csv"
 
 [model_params]
 epsilon = 100000000.0 # infinite privacy budget

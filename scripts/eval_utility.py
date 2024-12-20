@@ -3,6 +3,10 @@
 # range query: evaluate the error of range query
 
 import os
+import sys
+ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(ROOT)
+
 import argparse
 from lib.commons import load_config
 from evaluator.utility.eval_helper import save_utility_results
@@ -22,7 +26,7 @@ def main():
     print("Evalute utility performance for dataset {0} with algorithm {1}".format(args.dataset, args.model))
 
     # load template config
-    model_config = "exp/{0}/{1}/config.toml".format(args.dataset, args.model)
+    model_config = "exp/{0}/{1}/privsyn.toml".format(args.dataset, args.model)
     config = load_config(os.path.join(ROOT_DIR, model_config))
 
     seed = args.seed
@@ -42,7 +46,7 @@ def main():
         seed = i
         synthesizer.sample(config, n_samples, seed)
         # evaluate with ml model
-        ml_results = ml_evaluation(config, args.dataset, args.cuda, seed, ml_results)
+        # ml_results = ml_evaluation(config, args.dataset, args.cuda, seed, ml_results)
         # evalute with range query
         query_results = query_evaluation(config, query_results, n_samples=1000, seed=seed)
 
