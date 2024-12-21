@@ -298,7 +298,8 @@ class PrivSyn(Synthesizer):
 
             # obviously if things go well, it should match
             if not len(view.count) == view.domain_size:
-                raise Exception("no match")
+                print(f"Length of view.count: {len(view.count)}, Length of view.domain_size: {view.domain_size}")
+                raise Exception("No match: Length of view.count does not equal view.domain_size")
 
         return onehot_view_dict, attr_view_dict
 
@@ -329,11 +330,8 @@ class PrivSyn(Synthesizer):
         # it marks the attributes included in cur_attr by one-hot way in a len=attr_index_map array
         # return value is an array marked
         
-        #old code
-        # cur_view_key = [0] * len(attr_index_map)
-        # for attr in cur_att:
-        #     cur_view_key[attr_index_map[attr]] = 1
-        # return cur_view_key
+        cur_view_key = [0] * len(attr_index_map)
+        for attr in cur_att:
+            cur_view_key[attr_index_map[attr]] = 1
+        return cur_view_key
         
-        #new code
-        return [1 if i in attr_index_map and attr_index_map[i] in cur_att else 0 for i in range(len(attr_index_map))]
