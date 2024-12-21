@@ -5,6 +5,53 @@ import copy
 from lib import advanced_composition
 
 
+def get_noisy_marginals(
+    data_loader: Any,
+    marginal_config: Dict,
+    split_method: Dict,
+    eps: float,
+    delta: float,
+    sensitivity: int,
+) -> Dict[Tuple[str], np.array]:
+    """
+    Generate noisy marginals based on configuration.
+
+    Args:
+        data_loader: DataLoader instance
+        marginal_config: Configuration for marginal generation
+        split_method: Method for splitting privacy budget
+        eps: Epsilon parameter for differential privacy
+        delta: Delta parameter for differential privacy
+        sensitivity: Sensitivity parameter for differential privacy
+
+    Returns:
+        Dict mapping attribute tuples to noisy marginals
+    """
+    # Generate marginals
+    marginal_sets, epss = data_loader.generate_marginal_by_config(
+        data_loader.private_data, marginal_config
+    )
+
+    # Add noise
+    noisy_marginals = anonymize(
+        copy.deepcopy(marginal_sets), epss, split_method, delta, sensitivity
+    )
+
+    # Calculate difference scores
+    diff_scores = []
+    for key in noisy_marginals:
+        try:
+            diff = noisy_marginals[key] - marginal_sets["priv_all_two_way"][key]
+        except:
+            diff = noisy_marginals[key] - marginal_sets["priv_all_one_way"][key]
+        diff_scores.append(diff.sum().sum())
+
+    logger.info(f"Average difference score: {np.mean(diff_scores)}")
+
+    del marginal_sets  # Clean up original marginals
+    return noisy_marginals
+
+
 def anonymize(
     marginal_sets: Dict, epss: Dict, split_method: Dict, delta: float, sensitivity: int
 ) -> Dict[Tuple[str], np.array]:
@@ -65,51 +112,4 @@ def anonymize(
             f"param={noise_param}, sensitivity={sensitivity}"
         )
 
-    return noisy_marginals
-
-
-def get_noisy_marginals(
-    data_loader: Any,
-    marginal_config: Dict,
-    split_method: Dict,
-    eps: float,
-    delta: float,
-    sensitivity: int,
-) -> Dict[Tuple[str], np.array]:
-    """
-    Generate noisy marginals based on configuration.
-
-    Args:
-        data_loader: DataLoader instance
-        marginal_config: Configuration for marginal generation
-        split_method: Method for splitting privacy budget
-        eps: Epsilon parameter for differential privacy
-        delta: Delta parameter for differential privacy
-        sensitivity: Sensitivity parameter for differential privacy
-
-    Returns:
-        Dict mapping attribute tuples to noisy marginals
-    """
-    # Generate marginals
-    marginal_sets, epss = data_loader.generate_marginal_by_config(
-        data_loader.private_data, marginal_config
-    )
-
-    # Add noise
-    noisy_marginals = anonymize(
-        copy.deepcopy(marginal_sets), epss, split_method, delta, sensitivity
-    )
-
-    # Calculate difference scores
-    diff_scores = []
-    for key in noisy_marginals:
-        try:
-            diff = noisy_marginals[key] - marginal_sets["priv_all_two_way"][key]
-        except:
-            diff = noisy_marginals[key] - marginal_sets["priv_all_one_way"][key]
-        diff_scores.append(diff.sum().sum())
-
-    logger.info(f"Average difference score: {np.mean(diff_scores)}")
-
-    del marginal_sets  # Clean up original marginals
     return noisy_marginals

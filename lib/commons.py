@@ -17,11 +17,11 @@ from .data_processor import preprocess, transform_data
 def read_csv(csv_filename: str, meta_filename: str = None) -> tuple:
     """
     Read a csv file and its metadata.
-    
+
     Args:
         csv_filename: Path to CSV file
         meta_filename: Path to metadata JSON file
-    
+
     Returns:
         tuple: (data, meta_data, discrete_cols)
     """
@@ -29,8 +29,8 @@ def read_csv(csv_filename: str, meta_filename: str = None) -> tuple:
         meta_data = json.load(meta_file)
 
     discrete_cols = [
-        column["name"] 
-        for column in meta_data["columns"] 
+        column["name"]
+        for column in meta_data["columns"]
         if column["type"] != "continuous"
     ]
 
@@ -109,39 +109,48 @@ def normalize(X, normalization="quantile"):
     elif normalization == "quantile":
         # adopt from Tab-DDPM
         scaler = sklearn.preprocessing.QuantileTransformer(
-            output_distribution="normal", n_quantiles=max(min(X.shape[0] // 30, 1000), 10), subsample=int(1e8)
+            output_distribution="normal",
+            n_quantiles=max(min(X.shape[0] // 30, 1000), 10),
+            subsample=int(1e8),
         )
     else:
-        raise ValueError("normalization must be standard, minmax, or quantile, but got " + normalization)
+        raise ValueError(
+            "normalization must be standard, minmax, or quantile, but got "
+            + normalization
+        )
 
     scaler.fit(X)
     return scaler
 
 
-def preprocess(train_data, val_data, meta_data, discrete_cols, normalization="quantile"):
+def preprocess(
+    train_data, val_data, meta_data, discrete_cols, normalization="quantile"
+):
     """
     Convert dataframe to numpy arrays with encoding and normalization.
-    
+
     Args:
         train_data (pd.DataFrame): Training data
         val_data (pd.DataFrame): Validation data
         meta_data (dict): Metadata containing task type and other info
         discrete_cols (list): List of discrete column names
         normalization (str): Normalization method
-    
+
     Returns:
         tuple: ([train_x, train_y], [val_x, val_y], encodings)
     """
     encodings = {}
-    
+
     def fit_encoder(col, data):
         """Fit appropriate encoder for a column"""
         if col == "label":
             if meta_data["task"] != "regression":
                 return sklearn.preprocessing.LabelEncoder().fit(data.ravel())
             return normalize(data.reshape(-1, 1), normalization)
-        return (cat_encode if col in discrete_cols else normalize)(data.reshape(-1, 1), normalization)
-    
+        return (cat_encode if col in discrete_cols else normalize)(
+            data.reshape(-1, 1), normalization
+        )
+
     def encode_features(df):
         """Transform all features in a dataframe"""
         features = []
@@ -161,13 +170,13 @@ def preprocess(train_data, val_data, meta_data, discrete_cols, normalization="qu
     return (
         [
             encode_features(train_data),
-            encodings["label"].transform(train_data["label"].values.ravel())
+            encodings["label"].transform(train_data["label"].values.ravel()),
         ],
         [
             encode_features(val_data),
-            encodings["label"].transform(val_data["label"].values.ravel())
+            encodings["label"].transform(val_data["label"].values.ravel()),
         ],
-        encodings
+        encodings,
     )
 
 
@@ -175,12 +184,13 @@ def transform_data(data, encodings, meta_data):
     """Transform data using pre-fitted encodings."""
     features = [
         encodings[col].transform(data[col].values.reshape(-1, 1))
-        for col in data.columns if col != "label"
+        for col in data.columns
+        if col != "label"
     ]
-    
+
     return [
         np.concatenate(features, axis=1),
-        encodings["label"].transform(data["label"].values.ravel())
+        encodings["label"].transform(data["label"].values.ravel()),
     ]
 
 
@@ -202,7 +212,9 @@ def rmse(net, X, y):
     return mean_squared_error(y, y_pred, squared=False)
 
 
-def cal_metrics(y_true, y_pred, task_type, pred_prob=None, n_class=None, unique_labels=None):
+def cal_metrics(
+    y_true, y_pred, task_type, pred_prob=None, n_class=None, unique_labels=None
+):
     """
     y_prob, n_class, unique_labels are only used in classification task
     n_class: number of classes in real dataset
@@ -243,7 +255,9 @@ def cal_metrics(y_true, y_pred, task_type, pred_prob=None, n_class=None, unique_
             # see detail: https://github.com/scikit-learn/scikit-learn/issues/24636
             # get rid of the class with no data from both y_true and filled_pred_prob
             # remove the dimension of all 0
-            index = (np.sum(filled_y_true, axis=0) > 0) & (np.sum(filled_pred_prob, axis=0) > 0)
+            index = (np.sum(filled_y_true, axis=0) > 0) & (
+                np.sum(filled_pred_prob, axis=0) > 0
+            )
             # np.save("filled_y_true.npy", filled_y_true)
             # np.save("filled_pred_prob.npy", filled_pred_prob)
             # np.save("index.npy", index)

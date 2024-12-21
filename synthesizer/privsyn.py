@@ -15,7 +15,7 @@ from lib.commons import improve_reproducibility, read_csv
 from synthesizer.privsyn_lib.postprocessor import RecordPostprocessor
 from synthesizer.privsyn_lib.data_loader import DataLoader
 from synthesizer.privsyn_lib.data_trasnformer import DataTransformer
-from synthesizer.privsyn_lib.dpsyn import DPSyn
+from synthesizer.privsyn_lib.core import PrivSyn
 
 
 def train(args, cuda, seed=0):
@@ -52,7 +52,7 @@ def train(args, cuda, seed=0):
     data_loader = DataLoader()
     data_loader.load_data(private_data=transformed_data, encode_mapping=encode_mapping)
 
-    synthesizer = DPSyn(
+    synthesizer = PrivSyn(
         data_loader, update_iterations, epsilon, delta, sensitivity=1, ratio=ratio
     )
     synthesizer.train()
