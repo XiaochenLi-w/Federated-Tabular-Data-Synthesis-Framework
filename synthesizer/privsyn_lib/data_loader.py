@@ -8,6 +8,7 @@ import pandas as pd
 import yaml
 
 
+# TODO: more modern ways to load data
 class DataLoader:
     """Load data, bin some attributes, group some attributes,
     during which encode the attributes' values to categorical indexes,
@@ -117,9 +118,9 @@ class DataLoader:
         marginals = {}
         for i, attr in enumerate(all_attrs):
             for j in range(i + 1, len(all_attrs)):
-                marginals[
-                    frozenset([attr, all_attrs[j]])
-                ] = self.generate_two_way_marginal(records, attr, all_attrs[j])
+                marginals[frozenset([attr, all_attrs[j]])] = (
+                    self.generate_two_way_marginal(records, attr, all_attrs[j])
+                )
 
         print("------------------------> all two way marginals generated")
         # debug

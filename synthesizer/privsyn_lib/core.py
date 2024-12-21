@@ -38,7 +38,6 @@ class PrivSyn(Synthesizer):
     Domains = np.ndarray
     Marginals = Dict[Tuple[str], np.array]
     Clusters = Dict[Tuple[str], List[Tuple[str]]]
-    d = None
 
     def obtain_consistent_marginals(
         self, priv_marginal_config, priv_split_method
@@ -64,6 +63,7 @@ class PrivSyn(Synthesizer):
             self.sensitivity,
         )
 
+        # Step 2: create some data structures
         # since calculated on noisy marginals
         # we use mean function to estimate the number of synthesized records
         num_synthesize_records = (
@@ -78,7 +78,7 @@ class PrivSyn(Synthesizer):
 
         # the list of all attributes' name(str)  except the identifier attribute
         self.attr_list = self.data.obtain_attrs()
-        # domain_list is an array recording the count of each attribute's candidate values
+        # domain_size_list is an array recording the count of each attribute's candidate values
         self.domain_size_list = np.array(
             [len(self.data.encode_schema[att]) for att in self.attr_list]
         )
@@ -88,7 +88,8 @@ class PrivSyn(Synthesizer):
         self.attr_index_map = dict(zip(self.attr_list, range(len(self.attr_list))))
         # views are wrappers of marginals with additional functions for consistency
 
-        # Step 2: create some data structures
+        # construct views for each marginal (view is a wrapper of marginal)
+        # TODO: get rid of views and let consistenter operate on marginals directly
         noisy_onehot_view_dict, noisy_attr_view_dict = self.construct_views(
             noisy_marginals
         )
@@ -96,6 +97,7 @@ class PrivSyn(Synthesizer):
         # all_views is one-hot to view dict, views_dict is attribute to view dict
         # they have different format to satisfy the needs of consistenter and synthesiser
         # to fit in code when we do not have public things to utilize
+        # TODO: this was an API left for incorporating public data (originally used in the competition)
         pub_onehot_view_dict = noisy_onehot_view_dict
         pub_attr_view_dict = noisy_attr_view_dict
 
@@ -116,6 +118,7 @@ class PrivSyn(Synthesizer):
         for _, view in self.onehot_view_dict.items():
             view.count /= sum(view.count)
 
+        # remapped_marginals is a dict from attribute tuples to frequency (pandas) tables
         remapped_marginals = {}
 
         c_ = 0
@@ -176,17 +179,17 @@ class PrivSyn(Synthesizer):
         # if in need, we can find clusters for synthesize; a cluster is a set of marginals closely connected
         # here we do not cluster and use all marginals as a single cluster
         clusters = self.cluster(self.attrs_view_dict)
-        attrs = self.attr_list
-        domains = self.domain_size_list
+        attr_list = self.attr_list
+        domain_size_list = self.domain_size_list
         print("------------------------> attributes: ")
-        print(attrs)
+        print(attr_list)
         print("------------------------> domains: ")
-        print(domains)
+        print(domain_size_list)
         print("------------------------> cluseters: ")
         print(clusters)
         print("********************* START SYNTHESIZING RECORDS ********************")
 
-        self.synthesize_records(attrs, domains, clusters, self.num_records)
+        self.synthesize_records(attr_list, domain_size_list, clusters, self.num_records)
         print("------------------------> synthetic dataframe before postprocessing: ")
         print(self.synthesized_df)
         return self.synthesized_df
@@ -195,8 +198,8 @@ class PrivSyn(Synthesizer):
     #  it helps in terms of running time and accuracy if we do it cluster by cluster
     def synthesize_records(
         self,
-        attrs: Attrs,
-        domains: Domains,
+        attr_list: Attrs,
+        domain_size_list: Domains,
         clusters: Clusters,
         num_synthesize_records: int,
     ):
@@ -213,7 +216,7 @@ class PrivSyn(Synthesizer):
                     cur_attrs = list(cur_attrs)[0]
                     singleton_views[cur_attrs] = view
 
-            synthesizer = GUM(attrs, domains, num_synthesize_records)
+            synthesizer = GUM(attr_list, domain_size_list, num_synthesize_records)
             synthesizer.initialize_records(
                 list_marginal_attrs, method="singleton", singleton_views=singleton_views
             )
@@ -222,7 +225,7 @@ class PrivSyn(Synthesizer):
             }
 
             for update_iteration in range(self.update_iterations):
-                logger.info("update round: %d" % (update_iteration,))
+                logger.info(f"Update round: {update_iteration}")
 
                 synthesizer.update_alpha(update_iteration)
                 sorted_error_attrs = synthesizer.update_order(
@@ -325,7 +328,12 @@ class PrivSyn(Synthesizer):
     def one_hot(cur_att, attr_index_map):
         # it marks the attributes included in cur_attr by one-hot way in a len=attr_index_map array
         # return value is an array marked
-        cur_view_key = [0] * len(attr_index_map)
-        for attr in cur_att:
-            cur_view_key[attr_index_map[attr]] = 1
-        return cur_view_key
+        
+        #old code
+        # cur_view_key = [0] * len(attr_index_map)
+        # for attr in cur_att:
+        #     cur_view_key[attr_index_map[attr]] = 1
+        # return cur_view_key
+        
+        #new code
+        return [1 if i in attr_index_map and attr_index_map[i] in cur_att else 0 for i in range(len(attr_index_map))]

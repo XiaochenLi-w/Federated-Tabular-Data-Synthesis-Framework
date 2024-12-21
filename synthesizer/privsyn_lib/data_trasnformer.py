@@ -18,7 +18,7 @@ class DataTransformer(object):
         self.original_columns = data.columns
         self.discrete_columns = discrete_columns
         self.continuous_columns = [col for col in data.columns if col not in discrete_columns]
-        self.domain = {}
+        self.domain_size_dict = {}
 
         # transofrm discrete columns to ordinal encoding column by column
         # the one-hot encoding is handeled in the model
@@ -27,7 +27,7 @@ class DataTransformer(object):
             col_data = data[col].values.reshape(-1, 1)
             self.cat_transformers[col] = LabelEncoder()
             self.cat_transformers[col].fit(col_data.ravel())
-            self.domain[col] = len(self.cat_transformers[col].classes_)
+            self.domain_size_dict[col] = len(self.cat_transformers[col].classes_)
 
         # transform continuous columns to binning column by column
         self.num_transformers = {}
@@ -40,7 +40,7 @@ class DataTransformer(object):
             n_bins = min(n_values, self.max_bins)
             self.num_transformers[col] = KBinsDiscretizer(n_bins=n_bins, encode="ordinal", strategy="uniform",subsample = 500000)
             self.num_transformers[col].fit(col_data)
-            self.domain[col] = self.num_transformers[col].n_bins_[0]
+            self.domain_size_dict[col] = self.num_transformers[col].n_bins_[0]
                 
     def transform(self, data):
         """
@@ -111,7 +111,7 @@ class DataTransformer(object):
                     bin_intervals.append((bin_edges[i], bin_edges[i+1]))
                 bin_intervals.append((bin_edges[-1], np.inf))
                 encode_mapping[col] = dict(zip(bin_intervals, range(len(bin_intervals))))
-                assert len(encode_mapping[col]) == self.domain[col]
+                assert len(encode_mapping[col]) == self.domain_size_dict[col]
                 
         
         return encode_mapping
