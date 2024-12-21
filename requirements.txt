@@ -1,4 +1,4 @@
-numpy==2.2.0
+numpy==1.26.4
 pandas==2.2.3
 scikit-learn==1.6.0
 matplotlib==3.8.3
@@ -13,3 +13,5 @@ plotly==5.19.0
 torch==2.2.1
 tomli==2.0.1
 tomli-w==1.0.0
+catboost==1.2.2
+skorch==0.15.0

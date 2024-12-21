@@ -8,10 +8,79 @@ import pandas as pd
 import sklearn.preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, r2_score, roc_auc_score, mean_squared_error
-# import torch
-# import torch.nn as nn
 import random
+import os
+import torch
+from .data_processor import preprocess, transform_data
 
+
+def read_csv(csv_filename: str, meta_filename: str = None) -> tuple:
+    """
+    Read a csv file and its metadata.
+    
+    Args:
+        csv_filename: Path to CSV file
+        meta_filename: Path to metadata JSON file
+    
+    Returns:
+        tuple: (data, meta_data, discrete_cols)
+    """
+    with open(meta_filename) as meta_file:
+        meta_data = json.load(meta_file)
+
+    discrete_cols = [
+        column["name"] 
+        for column in meta_data["columns"] 
+        if column["type"] != "continuous"
+    ]
+
+    data = pd.read_csv(csv_filename, header="infer")
+    # Convert discrete columns to string
+    for col in discrete_cols:
+        data[col] = data[col].astype(str)
+
+    return data, meta_data, discrete_cols
+
+
+def get_n_class(meta_filename: str) -> int:
+    """
+    Get number of classes from metadata (-1 if regression).
+    """
+    meta_data = load_json(meta_filename)
+    for column in meta_data["columns"]:
+        if column["name"] == "label" and column["type"] != "continuous":
+            return column["size"]
+    return -1
+
+
+def load_config(path: Union[Path, str]) -> Any:
+    """Load TOML config file."""
+    with open(path, "rb") as f:
+        return tomli.load(f)
+
+
+def dump_config(config: dict, path: Union[Path, str]) -> None:
+    """Save config to TOML file."""
+    with open(path, "wb") as f:
+        tomli_w.dump(config, f)
+
+
+def improve_reproducibility(seed: int) -> None:
+    """Set random seeds for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
+def load_json(path: Union[Path, str]) -> dict:
+    """Load JSON file."""
+    with open(path) as f:
+        return json.load(f)
 
 
 # --------------------------------------------------------------- #
@@ -51,143 +120,68 @@ def normalize(X, normalization="quantile"):
 
 def preprocess(train_data, val_data, meta_data, discrete_cols, normalization="quantile"):
     """
-    convert dataframe to numpy array with one-hot encoding and normalization
-    return converted numpy array and encodings
-    note: we only use train and val data to fit the encodings
+    Convert dataframe to numpy arrays with encoding and normalization.
+    
+    Args:
+        train_data (pd.DataFrame): Training data
+        val_data (pd.DataFrame): Validation data
+        meta_data (dict): Metadata containing task type and other info
+        discrete_cols (list): List of discrete column names
+        normalization (str): Normalization method
+    
+    Returns:
+        tuple: ([train_x, train_y], [val_x, val_y], encodings)
     """
-    # combine train and val data
-    data = pd.concat([train_data, val_data], ignore_index=True)
-
-    # travse the dataframe and convert categorical and ordinal features to one-hot encoding
     encodings = {}
-
-    # first, get the encodings for train/val data
-    for col in data.columns:
+    
+    def fit_encoder(col, data):
+        """Fit appropriate encoder for a column"""
         if col == "label":
-            # flatten the label column
-            y_arr = np.concatenate(data[col].values.flatten().reshape(-1, 1)).ravel()
             if meta_data["task"] != "regression":
-                le = sklearn.preprocessing.LabelEncoder()
-                le.fit(y_arr.ravel())
-                encodings[col] = le
-            else:
-                scaler = normalize(y_arr.reshape(-1, 1), normalization)
-                encodings[col] = scaler
-        else:
-            if col in discrete_cols:
-                oe = cat_encode(data[col].values.reshape(-1, 1))
-                encodings[col] = oe
-            else:
-                scaler = normalize(data[col].values.reshape(-1, 1), normalization)
-                encodings[col] = scaler
-    train_x = []
-    val_x = []
-    train_y = []
-    val_y = []
+                return sklearn.preprocessing.LabelEncoder().fit(data.ravel())
+            return normalize(data.reshape(-1, 1), normalization)
+        return (cat_encode if col in discrete_cols else normalize)(data.reshape(-1, 1), normalization)
+    
+    def encode_features(df):
+        """Transform all features in a dataframe"""
+        features = []
+        for col in df.columns:
+            if col != "label":
+                features.append(encodings[col].transform(df[col].values.reshape(-1, 1)))
+        return np.concatenate(features, axis=1)
 
-    # then, convert train and val data
-    for col in data.columns:
-        if col == "label":
-            # flatten the label column
-            train_arr = train_data[col].values.flatten().reshape(-1, 1)
-            val_arr = val_data[col].values.flatten().reshape(-1, 1)
-            if meta_data["task"] != "regression":
-                train_arr,val_arr = train_arr.ravel(),val_arr.ravel()
-            train_y = encodings[col].transform(train_arr)
-            val_y = encodings[col].transform(val_arr)
-        else:
-            train_temp = encodings[col].transform(train_data[col].values.reshape(-1, 1))
-            val_temp = encodings[col].transform(val_data[col].values.reshape(-1, 1))
-            train_x.append(train_temp)
-            val_x.append(val_temp)
+    # Fit encoders on combined data
+    combined_data = pd.concat([train_data, val_data], ignore_index=True)
+    encodings = {
+        col: fit_encoder(col, combined_data[col].values)
+        for col in combined_data.columns
+    }
 
-    train_x = np.concatenate(train_x, axis=1)
-    val_x = np.concatenate(val_x, axis=1)
-    return [train_x, train_y], [val_x, val_y], encodings
+    # Transform data
+    return (
+        [
+            encode_features(train_data),
+            encodings["label"].transform(train_data["label"].values.ravel())
+        ],
+        [
+            encode_features(val_data),
+            encodings["label"].transform(val_data["label"].values.ravel())
+        ],
+        encodings
+    )
 
 
 def transform_data(data, encodings, meta_data):
-    """
-    transform data with given encodings
-    """
-    x = []
-    y = []
-    for col in data.columns:
-        if col == "label":
-            # flatten the label column
-            y = encodings[col].transform(data[col].values.reshape(-1, 1))
-        else:
-            x_temp = encodings[col].transform(data[col].values.reshape(-1, 1))
-            x.append(x_temp)
-
-    x = np.concatenate(x, axis=1)
-    return [x, y]
-
-
-# --------------------------------------------------------------- #
-# ------------------------------- helper ------------------------ #
-# --------------------------------------------------------------- #
-def read_csv(csv_filename, meta_filename=None):
-    """Read a csv file."""
-    with open(meta_filename) as meta_file:
-        meta_data = json.load(meta_file)
-
-    discrete_cols = [column["name"] for column in meta_data["columns"] if column["type"] != "continuous"]
-
-    data = pd.read_csv(csv_filename, header="infer")
-    # set the discrete columns to string
-    for col in discrete_cols:
-        data[col] = data[col].astype(str)
-
-    return data, meta_data, discrete_cols
-
-
-def get_n_class(meta_filename):
-    """
-    Get the number of classes in the dataset.
-    if regression, return -1
-    """
-    with open(meta_filename) as meta_file:
-        meta_data = json.load(meta_file)
-
-    for column in meta_data["columns"]:
-        if column["name"] == "label" and column["type"] != "continuous":
-            return column["size"]
-
-    return -1
-
-
-def load_config(path: Union[Path, str]) -> Any:
-    """
-    load config file `.toml`
-    """
-    with open(path, "rb") as f:
-        return tomli.load(f)
-
-
-def dump_config(config, path):
-    """
-    dump config file `.toml`
-    """
-    with open(path, "wb") as f:
-        tomli_w.dump(config, f)
-    print("successfully dump config to {0}".format(path))
-
-
-def improve_reproducibility(seed):
-    random.seed(seed)
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    # torch.backends.cudnn.deterministic = True
-
-
-def load_json(path):
-    """
-    Load meta data `.json`
-    """
-    with open(path) as f:
-        meta_data = json.load(f)
-    return meta_data
+    """Transform data using pre-fitted encodings."""
+    features = [
+        encodings[col].transform(data[col].values.reshape(-1, 1))
+        for col in data.columns if col != "label"
+    ]
+    
+    return [
+        np.concatenate(features, axis=1),
+        encodings["label"].transform(data["label"].values.ravel())
+    ]
 
 
 # --------------------------------------------------------------- #

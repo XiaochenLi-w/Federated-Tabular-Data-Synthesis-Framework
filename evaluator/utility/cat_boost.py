@@ -5,8 +5,9 @@ import optuna
 from lib.commons import dump_config, cal_metrics
 from evaluator.utility.util import callback, get_score, missing_class_corrector
 import os
-from lib.info import TUNED_PARAMS_PATH
-from catboost import Pool
+from lib.config import config
+
+TUNED_PARAMS_PATH = config.tuned_params_path
 
 def train_catboost(params, train_data, test_data, task_type, n_class):
     x_train, y_train = train_data

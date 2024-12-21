@@ -3,9 +3,9 @@ import torch
 import os
 from lib.info import *
 from evaluator.privacy.eval_helper import sample_half_data
-from synthesizer.syn.data_trasnformer import DataTransformer
-from synthesizer.syn.data_loader import DataLoader
-from synthesizer.syn.dpsyn import DPSyn
+from synthesizer.privsyn.data_trasnformer import DataTransformer
+from synthesizer.privsyn.data_loader import DataLoader
+from synthesizer.privsyn.dpsyn import DPSyn
 import pickle
 
 

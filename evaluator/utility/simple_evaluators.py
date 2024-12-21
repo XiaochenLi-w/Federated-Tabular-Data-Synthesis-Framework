@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.metrics import r2_score, mean_squared_error
 from lib.commons import dump_config, cal_metrics
-from evaluator.utility.util import callback
+from evaluator.utility.util import callback, get_score, missing_class_corrector
 from tqdm.contrib.logging import logging_redirect_tqdm
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
@@ -10,12 +10,10 @@ from sklearn.neural_network import MLPRegressor, MLPClassifier
 from sklearn.svm import SVR, SVC
 import optuna
 import os
-from lib.info import TUNED_PARAMS_PATH
-from evaluator.utility.util import get_score, missing_class_corrector
-
+from lib.config import config
 
 n_trails_simple = 50  # tune 50 times for each simple model
-save_param_path = TUNED_PARAMS_PATH + "/evaluators"
+save_param_path = str(config.tuned_params_path) + "/evaluators"
 
 
 def train_lr(params, train_data, test_data, task_type, n_class):

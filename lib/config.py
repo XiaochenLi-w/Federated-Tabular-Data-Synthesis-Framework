@@ -1,8 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 from pathlib import Path
 import os
-from dotenv import load_dotenv
 
 @dataclass
 class MLConfig:
@@ -23,9 +22,6 @@ class MLConfig:
 
 @dataclass
 class Config:
-    # Load environment variables
-    load_dotenv()
-    
     # Paths
     root_dir: Path = Path(os.getenv('ROOT_DIR', '/app'))
     tuned_params_path: Path = Path(os.getenv('TUNED_PARAMS_PATH', '/app/exp'))
@@ -39,7 +35,7 @@ class Config:
     storage: str = os.getenv('STORAGE', 'sqlite:///exp.db')
     
     # ML configurations
-    ml: MLConfig = MLConfig()
+    ml: MLConfig = field(default_factory=MLConfig)
 
 # Create a singleton config instance
 config = Config() 

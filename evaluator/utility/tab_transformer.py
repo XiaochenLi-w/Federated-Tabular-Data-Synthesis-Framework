@@ -10,8 +10,9 @@ from skorch.callbacks import EarlyStopping, EpochScoring
 from skorch.helper import predefined_split
 from torch.nn import MSELoss, BCEWithLogitsLoss, CrossEntropyLoss
 from torch.optim import AdamW
-from lib.info import TUNED_PARAMS_PATH
-from evaluator.utility.util import get_score, missing_class_corrector
+from lib.config import config
+
+TUNED_PARAMS_PATH = config.tuned_params_path
 
 
 def train_tab_transformer(params, train_data, test_data, task_type, n_class, device):

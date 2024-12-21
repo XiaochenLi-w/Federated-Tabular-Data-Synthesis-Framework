@@ -1,5 +1,5 @@
+from lib.config import config
 from lib.commons import *
-from lib.info import TUNED_PARAMS_PATH
 from evaluator.utility.util import split_data_stratify
 import numpy as np
 from evaluator.utility.cat_boost import train_catboost
@@ -7,6 +7,8 @@ from evaluator.utility.tab_transformer import train_tab_transformer
 from evaluator.utility.xgb import train_xgb
 from evaluator.utility.simple_evaluators import *
 from evaluator.utility.query import range_query
+
+TUNED_PARAMS_PATH = config.tuned_params_path
 
 
 def load_data_for_query(data_path, meta_data_path):
