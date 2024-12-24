@@ -13,6 +13,14 @@ from . import marginal_utils as marginal
 from ..abc_synthesizer import Synthesizer
 import synthesizer.privsyn_lib.anonymizer as anonymizer
 
+def canonical_key(attrs):
+    """
+    Convert any iterable (list, set, frozenset) of attribute names
+    into a sorted tuple for consistent usage as a dictionary or Pandas index key.
+    """
+    if isinstance(attrs, (list, set, frozenset)):
+        return tuple(sorted(attrs))
+    return attrs  # if already a tuple or string, just return as is
 
 class PrivSyn(Synthesizer):
     """
@@ -84,7 +92,7 @@ class PrivSyn(Synthesizer):
         )
 
         # By default, we will not rely on any "public" data in this example,
-        # so we set the "pub" dictionaries to the same as the "noisy" ones.
+        # so set the "pub" dictionaries to the same as the "noisy" ones.
         pub_onehot_marginal_dict = noisy_onehot_marginal_dict
         pub_attr_marginal_dict = noisy_attr_marginal_dict
 
@@ -100,7 +108,7 @@ class PrivSyn(Synthesizer):
         consistenter = Consistenter(self.onehot_marginal_dict, self.domain_size_list)
         consistenter.consist_marginals()
 
-        # After consistency, we typically want them normalized:
+        # After consistency, optionally normalize each marginal
         for _, marginal_dict in self.onehot_marginal_dict.items():
             total = sum(marginal_dict["count"])
             if total > 0:
@@ -108,14 +116,10 @@ class PrivSyn(Synthesizer):
 
         # Rebuild marginals from the consistent dictionaries
         remapped_marginals = {}
-        c_ = 0
         for attrs, marginal_dict in self.attrs_marginal_dict.items():
-            # Convert the frozenset to a tuple
-            marginal_attrs = tuple(attrs)
-            # Extract the consistent counts
-            marginal_values = marginal_dict["count"]
-            c_ += 1
-            remapped_marginals[marginal_attrs] = marginal_values
+            # 'attrs' might be a frozenset or a tuple. Convert it to a sorted tuple.
+            canonical_attrs = canonical_key(attrs)
+            remapped_marginals[canonical_attrs] = marginal_dict["count"]
 
         return remapped_marginals, num_synthesize_records
 
@@ -153,6 +157,7 @@ class PrivSyn(Synthesizer):
         if num_records != 0:
             self.num_records = num_records
 
+        # Simple "clustering" that groups everything together in one cluster
         clusters = self.cluster(self.attrs_marginal_dict)
         attr_list = self.attr_list
         domain_size_list = self.domain_size_list
@@ -188,16 +193,15 @@ class PrivSyn(Synthesizer):
             singleton_marginals = {}
             for cur_attrs, marginal_dict in self.attrs_marginal_dict.items():
                 if len(cur_attrs) == 1:
-                    single_attr = list(cur_attrs)[0]
+                    # cur_attrs might be a frozenset; unify it
+                    canonical_single = canonical_key(cur_attrs)
+                    single_attr = list(canonical_single)[0]  # e.g., "age"
                     singleton_marginals[single_attr] = marginal_dict
 
             synthesizer = GUM(attr_list, domain_size_list, num_synthesize_records)
             synthesizer.initialize_records(
                 list_marginal_attrs, method="singleton", singleton_marginals=singleton_marginals
             )
-            attrs_index_map = {
-                attrs: index for index, attrs in enumerate(list_marginal_attrs)
-            }
 
             for update_iteration in range(self.update_iterations):
                 logger.info(f"Update round: {update_iteration}")
@@ -208,8 +212,12 @@ class PrivSyn(Synthesizer):
                 )
 
                 for attrs in sorted_error_attrs:
+                    # unify
+                    canonical_attrs = canonical_key(attrs)
                     synthesizer.update_records(
-                        self.attrs_marginal_dict[attrs], update_iteration, attrs
+                        self.attrs_marginal_dict[canonical_attrs],
+                        update_iteration,
+                        canonical_attrs,
                     )
 
             if self.synthesized_df is None:
@@ -238,9 +246,12 @@ class PrivSyn(Synthesizer):
         onehot_marginal_dict = pub_onehot_marginal_dict
 
         for marginal_att, new_marginal_dict in noisy_marginal_dict.items():
+            # unify 'marginal_att' as a sorted tuple
+            canonical_att = canonical_key(marginal_att)
+
             # In case the same marginal already exists in pub_attr_marginal_dict
-            if marginal_att in marginals_dict:
-                old_marginal_dict = pub_attr_marginal_dict[marginal_att]
+            if canonical_att in marginals_dict:
+                old_marginal_dict = marginals_dict[canonical_att]
 
                 # Blend the counts
                 blended_count = (
@@ -260,14 +271,14 @@ class PrivSyn(Synthesizer):
                     + noisy_weight * new_marginal_dict["weight_coeff"]
                 )
             else:
-                # Insert it new
-                marginals_dict[marginal_att] = new_marginal_dict
+                marginals_dict[canonical_att] = new_marginal_dict
+
                 # If needed, define a default weight_coeff
-                if "weight_coeff" not in marginals_dict[marginal_att]:
-                    marginals_dict[marginal_att]["weight_coeff"] = 1
+                if "weight_coeff" not in new_marginal_dict:
+                    new_marginal_dict["weight_coeff"] = 1
 
                 # Build the one-hot array for this attribute set
-                marginal_onehot = PrivSyn.one_hot(marginal_att, attr_index_map)
+                marginal_onehot = PrivSyn.one_hot(canonical_att, attr_index_map)
                 onehot_marginal_dict[tuple(marginal_onehot)] = new_marginal_dict
 
         return onehot_marginal_dict, marginals_dict
@@ -283,22 +294,21 @@ class PrivSyn(Synthesizer):
         attr_marginal_dict = {}
 
         for marginal_att, marginal_value in marginals.items():
-            # Build the one-hot array for the attributes in 'marginal_att'
-            marginal_onehot = PrivSyn.one_hot(marginal_att, self.attr_index_map)
+            # unify
+            canonical_att = canonical_key(marginal_att)
+
+            # Build the one-hot array for the attributes in 'canonical_att'
+            marginal_onehot = self.one_hot(canonical_att, self.attr_index_map)
             marginal_onehot_array = np.array(marginal_onehot, dtype=int)
 
             # Create a marginal_dict using marginal_utils
             marginal_dict = marginal.create_marginal(marginal_onehot_array, self.domain_size_list)
-
-            # Fill in the count with the marginal data
-            marginal_dict["count"] = marginal_value.values.flatten()
-
-            # If needed, define default weight_coeff
-            marginal_dict["weight_coeff"] = 1
+            marginal_dict["count"] = marginal_value.values.flatten()  # fill in the counts
+            marginal_dict["weight_coeff"] = 1  # default
 
             # Map one-hot -> marginal_dict, and attributes -> marginal_dict
             onehot_marginal_dict[tuple(marginal_onehot)] = marginal_dict
-            attr_marginal_dict[marginal_att] = marginal_dict
+            attr_marginal_dict[canonical_att] = marginal_dict
 
             # Consistency check
             if len(marginal_dict["count"]) != marginal_dict["domain_size"]:
@@ -312,18 +322,23 @@ class PrivSyn(Synthesizer):
 
     @staticmethod
     def build_attr_set(attrs: KeysView[Tuple[str]]) -> Tuple[str]:
+        """
+        Convert a list of attribute tuples into a single tuple containing all attributes.
+        """
         attrs_set = set()
         for attr in attrs:
             attrs_set.update(attr)
-        return tuple(attrs_set)
+        return tuple(sorted(attrs_set))
 
     def cluster(self, marginals: Dict[Tuple[str], np.ndarray]) -> Dict[Tuple[str], List[Tuple[str]]]:
         """
         A simple "clustering" approach that just puts all marginals together in one group.
         """
         clusters = {}
-        keys = list(marginals.keys())
-        clusters[PrivSyn.build_attr_set(keys)] = keys
+        # unify the keys
+        keys = [canonical_key(k) for k in marginals.keys()]
+        # build a single big cluster
+        clusters[self.build_attr_set(keys)] = keys
         return clusters
 
     @staticmethod

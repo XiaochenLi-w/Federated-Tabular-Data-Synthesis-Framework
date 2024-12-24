@@ -1,13 +1,13 @@
-version: '3.8'
-
 services:
-  datascience:
+  dev:
     build: .
     volumes:
       - .:/app
+    ports:
+      - "5678:5678"  # for debugger
     environment:
-      - PYTHONPATH=/app
-    working_dir: /app
-    # Enable interactive mode
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
     stdin_open: true
-    tty: true 
+    tty: true
+    command: zsh 

@@ -6,6 +6,15 @@ import pandas as pd
 
 from . import marginal_utils as marginal
 
+def canonical_key(attrs):
+    """
+    Convert any iterable (list, set, frozenset) of attribute names
+    into a sorted tuple for consistent usage as a dictionary or Pandas index key.
+    """
+    if isinstance(attrs, (list, set, frozenset)):
+        return tuple(sorted(attrs))
+    return attrs  # if already a tuple, just return
+
 class GUM:
     records = None
     df = None
@@ -38,6 +47,10 @@ class GUM:
         self.alpha = 1.0 * 0.84 ** (iteration // 20)
 
     def initialize_records(self, iterate_keys, method="random", singleton_marginals=None):
+        # canonicalize each key to a sorted tuple
+        iterate_keys = [canonical_key(k) for k in iterate_keys]
+        self.error_tracker = pd.DataFrame(index=iterate_keys, dtype=np.float32)
+
         self.records = np.empty([self.num_records, len(self.attrs)], dtype=np.uint32)
         for attr_i, attr in enumerate(self.attrs):
             if method == "random":
@@ -49,9 +62,6 @@ class GUM:
                     singleton_marginals[attr]
                 )
         self.df = pd.DataFrame(self.records, columns=self.attrs)
-        
-        iterate_keys = [self.canonical_key(x) for x in iterate_keys]
-        self.error_tracker = pd.DataFrame(index=iterate_keys)
 
     def generate_singleton_records(self, singleton_marginal_dict):
         record = np.empty(self.num_records, dtype=np.uint32)
@@ -67,22 +77,15 @@ class GUM:
         return record
 
     def update_order(self, iteration, marginals, iterate_keys):
-        self.error_tracker.insert(loc=0, column=f"{iteration}-before", value=0)
+        # ensure keys in the DataFrame match keys used here
+        self.error_tracker.insert(loc=0, column=f"{iteration}-before", value=0.0)
 
-        # Update records before sorting
-        for key_i, raw_key in enumerate(iterate_keys):
-            # unify it
-            key = self.canonical_key(raw_key)
-            
-            # If 'marginals' was also stored under a canonical key, we can do:
-            #   marginals[key]
-            # But if 'marginals' was stored under frozenset(key), you must convert again:
-            #   marginals[frozenset(key)]
-            # The important part is to do exactly the same transformation you used 
-            # when creating 'marginals' in the first place.
-            print(key)
-            print(iterate_keys, key, marginals[frozenset(key)])
-            self.update_records_before(marginals[frozenset(key)], key, iteration, mute=True)
+        for key in iterate_keys:
+            key = canonical_key(key)  # unify the form
+            if key not in marginals:
+                # If the dictionary does not have that key, skip or handle error
+                continue
+            self.update_records_before(marginals[key], key, iteration, mute=True)
 
         # print("error tracker before sorting: ")
         # print(self.error_tracker)
@@ -93,22 +96,17 @@ class GUM:
         # print("error tracker after sorting: ")
         # print(sort_error_tracker)
 
-        self.error_tracker.insert(loc=0, column=f"{iteration}-after", value=0)
+        self.error_tracker.insert(loc=0, column=f"{iteration}-after", value=0.0)
         return list(sort_error_tracker.index)
 
-    @staticmethod
-    def canonical_key(attrs):
-        # Convert anything to a sorted tuple
-        # e.g., if attrs = frozenset({'workclass','age'}), it becomes ('age','workclass')
-        if not isinstance(attrs, (list, tuple, set, frozenset)):
-            raise ValueError(f"Unexpected type for attrs: {type(attrs)} -> {attrs}")
-        return tuple(sorted(attrs))
-
     def update_records(self, original_marginal_dict, iteration, attrs):
+        # unify
+        canonical_attrs = canonical_key(attrs)
+
         # Copy the dictionary rather than copying an object
         marginal_dict = copy.deepcopy(original_marginal_dict)
 
-        self.update_records_before(marginal_dict, attrs, iteration)
+        self.update_records_before(marginal_dict, canonical_attrs, iteration)
         self.update_records_main(marginal_dict)
         self.determine_throw_indices()
         self.handle_zero_cells(marginal_dict)
@@ -118,7 +116,7 @@ class GUM:
         else:
             self.complete_partial_ratio(marginal_dict, 1.0)
 
-        self.update_records_before(marginal_dict, attrs, iteration)
+        self.update_records_before(marginal_dict, canonical_attrs, iteration)
 
     def update_records_main(self, marginal_dict):
         alpha = self.alpha
@@ -312,32 +310,43 @@ class GUM:
         Compute the synthetic marginal from the current records,
         then compute the L1 error relative to the actual marginal.
         """
+        # unify the key
+        marginal_key = canonical_key(marginal_key)
+
         self.actual_marginal = marginal_dict["count"]
         count = marginal.count_records_general(marginal_dict, self.records)
         self.synthesize_marginal = count / np.sum(count)
         l1_error = LA.norm(self.actual_marginal - self.synthesize_marginal, 1)
+
         if not mute:
             logger.info("the L1 error before updating is %s" % (l1_error,))
 
-        marginal_key = self.canonical_key(marginal_key)
-        
         # Record the error in the error_tracker table if it exists
-        if self.error_tracker is not None and f"{iteration}-before" in self.error_tracker.columns:
-            print(marginal_key)
-            self.error_tracker.loc[marginal_key, f"{iteration}-before"] = l1_error
+        if (
+            self.error_tracker is not None
+            and f"{iteration}-before" in self.error_tracker.columns
+            and marginal_key in self.error_tracker.index
+        ):
+            self.error_tracker.at[marginal_key, f"{iteration}-before"] = l1_error
 
     def update_records_after(self, marginal_dict, marginal_key, iteration):
         """
         Called after an update step to log the new L1 error.
         """
+        marginal_key = canonical_key(marginal_key)
+
         self.actual_marginal = marginal_dict["count"]
         count = marginal.count_records_general(marginal_dict, self.records)
         self.synthesize_marginal = count / np.sum(count)
         l1_error = LA.norm(self.actual_marginal - self.synthesize_marginal, 1)
         logger.info("the L1 error after updating is %s" % (l1_error,))
 
-        if self.error_tracker is not None and f"{iteration}-after" in self.error_tracker.columns:
-            self.error_tracker.loc[marginal_key, f"{iteration}-after"] = l1_error
+        if (
+            self.error_tracker is not None
+            and f"{iteration}-after" in self.error_tracker.columns
+            and marginal_key in self.error_tracker.index
+        ):
+            self.error_tracker.at[marginal_key, f"{iteration}-after"] = l1_error
 
     def _rounding(self, vector):
         """

@@ -1,5 +1,12 @@
-# Use Python 3.12.2 base image
-FROM python:3.12.2-slim
+# Use Python 3.11 base image
+FROM python:3.11-slim
+
+# Install system dependencies and zsh
+RUN apt-get update && \
+    apt-get install -y \
+    build-essential \
+    zsh \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -8,13 +15,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy project files
 COPY . .
-
-# Set Python path
-ENV PYTHONPATH=/app
-
-# Default command
-CMD ["bash"]
