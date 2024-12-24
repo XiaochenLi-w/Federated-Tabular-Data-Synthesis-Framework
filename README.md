@@ -58,3 +58,70 @@ Inside the container, you can call the same training and evaluation scripts.
 ```bash
 docker run privsyn train -d adult -m privsyn
 ```
+
+## Docker Compose
+
+You can also run everything inside containers. This repository includes a docker-compose.yml file for convenience.
+
+### Starting the Development Container
+```bash
+docker-compose up
+```
+This builds and starts the container(s) defined in docker-compose.yml. Check the logs for any errors.
+
+### Entering the Container
+```bash
+docker-compose exec dev zsh
+```
+You can replace "dev" with the name of your service/container as specified in docker-compose.yml. 
+
+If you want to stop or rebuild, use:
+
+```bash
+docker-compose down
+docker-compose up --build
+```
+
+## Debugging with VS Code
+
+If you use Visual Studio Code and want to debug inside the Docker container:
+
+1. Make sure you have the Docker extension and the Python extension installed.
+2. Start the container:
+
+   ```bash
+   docker-compose up
+   ```
+
+3. Attach to the container:
+
+   ```bash
+   docker-compose exec dev zsh
+   ```
+
+4. Run your Python script with debugpy:
+
+   ```bash
+   python -m debugpy --listen 0.0.0.0:5678 --wait-for-client scripts/eval_utility.py -d adult -m privsyn
+   ```
+
+5. In VS Code, set breakpoints, then press F5 or click "Run and Debug," choosing "Python: Remote Attach."
+
+6. The debugger will attach to the script running on port 5678.
+
+### Debug Controls
+- F5: Continue
+- F10: Step Over
+- F11: Step Into
+- Shift+F11: Step Out
+- Shift+F5: Stop Debugging
+- Ctrl+Shift+F5: Restart
+
+### Troubleshooting
+- If the debugger is not connecting, ensure port 5678 is free.
+- If you need a fresh start, run:
+
+  ```bash
+  docker-compose down
+  docker-compose up --build
+  ```

@@ -40,3 +40,9 @@ ENV/
 .idea/
 .vscode/
 *.swp
+
+# project-specific
+*.log
+*.out
+*.err
+exp/adult/privsyn/adult.csv
