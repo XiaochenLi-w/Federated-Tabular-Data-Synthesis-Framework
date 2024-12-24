@@ -23,6 +23,11 @@ wheels/
 .coverage
 coverage.xml
 .pytest_cache/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+test-results/
 
 # Environment
 .env
@@ -35,6 +40,3 @@ ENV/
 .idea/
 .vscode/
 *.swp
-
-# project specific
-exp/adult/privsyn/adult.csv

@@ -9,31 +9,32 @@ from loguru import logger
 
 from .consistenter import Consistenter
 from .gum import GUM
-from .view import View
+from . import marginal_utils as marginal
 from ..abc_synthesizer import Synthesizer
 import synthesizer.privsyn_lib.anonymizer as anonymizer
 
 
 class PrivSyn(Synthesizer):
-    """Note that it inherits the class Synthesizer,
-    which already has the following attributes :
+    """
+    Note that it inherits the class Synthesizer,
+    which already has the following attributes:
     (data: DataLoader, eps, delta, sensitivity) initialized
-
     """
 
     synthesized_df = None
 
-    # the magic value is set empirically and users may change in command lines
+    # The magic value is set empirically and users may change it in command lines
     update_iterations = 30
 
-    attrs_view_dict = {}
-    onehot_view_dict = {}
+    attrs_marginal_dict = {}
+    onehot_marginal_dict = {}
 
     attr_list = []
     domain_size_list = []
     attr_index_map = {}
 
-    # despite python variables can be used without claiming its type, we import typing to ensure robustness
+    # despite python variables can be used without specifying type, 
+    # we import typing to ensure clarity
     Attrs = List[str]
     Domains = np.ndarray
     Marginals = Dict[Tuple[str], np.array]
@@ -41,18 +42,12 @@ class PrivSyn(Synthesizer):
 
     def obtain_consistent_marginals(
         self, priv_marginal_config, priv_split_method
-    ) -> Marginals:
-        """marginals are specified by a dict from attribute tuples to frequency (pandas) tables
-        first obtain noisy marginals and make sure they are consistent
-
+    ) -> Tuple[Marginals, int]:
+        """
+        Marginals are specified by a dict from attribute tuples to frequency (pandas) tables.
+        First obtain noisy marginals and make them consistent.
         """
 
-        # get_noisy_marginals() is in synthesizer.py
-        # which first calls generate_..._by_config(), and computes on priv_data to return marginal_sets, epss
-        # (note that 'marginal_key' could be 'priv_all_one_way' or 'priv_all_two_way')
-        # later it calls anonymize() which add noises to marginals
-        # (what decides noises is 'priv_split_method')
-        # priv_split_method[set_key]='lap' or....
         # Step 1: generate noisy marginals
         noisy_marginals = anonymizer.get_noisy_marginals(
             self.data,
@@ -63,93 +58,74 @@ class PrivSyn(Synthesizer):
             self.sensitivity,
         )
 
-        # Step 2: create some data structures
-        # since calculated on noisy marginals
-        # we use mean function to estimate the number of synthesized records
+        # Step 2: get an estimate of the number of records
         num_synthesize_records = (
             np.mean([np.sum(x.values) for _, x in noisy_marginals.items()])
             .round()
             .astype(int)
         )
         print(
-            "------------------------> now we get the estimate of records' num by averaging from nosiy marginals:",
+            "------------------------> now we get the estimate of records' num by averaging from noisy marginals:",
             num_synthesize_records,
         )
 
-        # the list of all attributes' name(str)  except the identifier attribute
+        # the list of all attributes' names (strings) except the identifier attribute
         self.attr_list = self.data.obtain_attrs()
-        # domain_size_list is an array recording the count of each attribute's candidate values
+        # domain_size_list is an array recording how many distinct values each attribute has
         self.domain_size_list = np.array(
             [len(self.data.encode_schema[att]) for att in self.attr_list]
         )
-
-        # map the attribute str to its index in attr_list, for possible use
-        # use enumerate to return Tuple(index, element)
+        # map from attribute string to its index in attr_list
         self.attr_index_map = dict(zip(self.attr_list, range(len(self.attr_list))))
-        # views are wrappers of marginals with additional functions for consistency
 
-        # construct views for each marginal (view is a wrapper of marginal)
-        # TODO: get rid of views and let consistenter operate on marginals directly
-        noisy_onehot_view_dict, noisy_attr_view_dict = self.construct_views(
+        # Build marginal dictionaries from noisy data
+        noisy_onehot_marginal_dict, noisy_attr_marginal_dict = self.construct_marginals(
             noisy_marginals
         )
 
-        # all_views is one-hot to view dict, views_dict is attribute to view dict
-        # they have different format to satisfy the needs of consistenter and synthesiser
-        # to fit in code when we do not have public things to utilize
-        # TODO: this was an API left for incorporating public data (originally used in the competition)
-        pub_onehot_view_dict = noisy_onehot_view_dict
-        pub_attr_view_dict = noisy_attr_view_dict
+        # By default, we will not rely on any "public" data in this example,
+        # so we set the "pub" dictionaries to the same as the "noisy" ones.
+        pub_onehot_marginal_dict = noisy_onehot_marginal_dict
+        pub_attr_marginal_dict = noisy_attr_marginal_dict
 
-        self.onehot_view_dict, self.attrs_view_dict = self.normalize_views(
-            pub_onehot_view_dict,
-            pub_attr_view_dict,
-            noisy_attr_view_dict,
+        self.onehot_marginal_dict, self.attrs_marginal_dict = self.normalize_marginals(
+            pub_onehot_marginal_dict,
+            pub_attr_marginal_dict,
+            noisy_attr_marginal_dict,
             self.attr_index_map,
             num_synthesize_records,
         )
 
-        # consist the noisy marginals to submit to some rules
-        consistenter = Consistenter(self.onehot_view_dict, self.domain_size_list)
-        consistenter.consist_views()
+        # Next, ensure that the marginals in onehot_marginal_dict are consistent
+        consistenter = Consistenter(self.onehot_marginal_dict, self.domain_size_list)
+        consistenter.consist_marginals()
 
-        # consistenter uses unnormalized counts;
-        # after consistency, synthesizer uses normalized counts
-        for _, view in self.onehot_view_dict.items():
-            view.count /= sum(view.count)
+        # After consistency, we typically want them normalized:
+        for _, marginal_dict in self.onehot_marginal_dict.items():
+            total = sum(marginal_dict["count"])
+            if total > 0:
+                marginal_dict["count"] /= total
 
-        # remapped_marginals is a dict from attribute tuples to frequency (pandas) tables
+        # Rebuild marginals from the consistent dictionaries
         remapped_marginals = {}
-
         c_ = 0
-        for attrs, view in self.attrs_view_dict.items():
-            # Extract the counts from the view
+        for attrs, marginal_dict in self.attrs_marginal_dict.items():
+            # Convert the frozenset to a tuple
             marginal_attrs = tuple(attrs)
-            items_list = list(self.attrs_view_dict.items())
-            key, value = items_list[c_]
-            marginal_values = value.count
+            # Extract the consistent counts
+            marginal_values = marginal_dict["count"]
             c_ += 1
-
-            # Convert the attributes (frozenset) back to a tuple
-
-            # Store the reconstructed marginal in the remapped marginals
             remapped_marginals[marginal_attrs] = marginal_values
-
-        # print(remapped_marginals)
 
         return remapped_marginals, num_synthesize_records
 
-    # in experiment.py, tmp = synthesizer.synthesize(fixed_n=n)
-    # in below function, we call synthesize_records()
-    # it further utilize the lib function in record_synthesizer.py
-
     def train(self):
         """
-        privsyn is a non-parametric differentially private synthesizer
-        the training process is to obtain noisy marginals and make sure they are consistent
+        privsyn is a non-parametric differentially private synthesizer.
+        The training process obtains noisy marginals and makes them consistent.
         """
-        if self.ratio != None:
-            # devide the eps into two parts
+        if self.ratio is not None:
+            # Divide eps into two parts
             one_way_eps = self.eps * self.ratio
             two_way_eps = self.eps * (1 - self.ratio)
             priv_marginal_config = {
@@ -164,28 +140,28 @@ class PrivSyn(Synthesizer):
 
         priv_split_method = {}
 
-        # step1: get noisy marginals and make sure they are consistent
+        # Step 1: get noisy marginals and make sure they are consistent
         noisy_marginals, num_records = self.obtain_consistent_marginals(
             priv_marginal_config, priv_split_method
         )
-
         self.num_records = num_records
 
     def synthesize(self, num_records=0) -> pd.DataFrame:
-        """synthesize a DataFrame in fixed_n size if denoted n!=0"""
+        """
+        Produce a DataFrame in size num_records if specified.
+        """
         if num_records != 0:
             self.num_records = num_records
-        # TODO: just based on the marginals to synthesize records
-        # if in need, we can find clusters for synthesize; a cluster is a set of marginals closely connected
-        # here we do not cluster and use all marginals as a single cluster
-        clusters = self.cluster(self.attrs_view_dict)
+
+        clusters = self.cluster(self.attrs_marginal_dict)
         attr_list = self.attr_list
         domain_size_list = self.domain_size_list
+
         print("------------------------> attributes: ")
         print(attr_list)
         print("------------------------> domains: ")
         print(domain_size_list)
-        print("------------------------> cluseters: ")
+        print("------------------------> clusters: ")
         print(clusters)
         print("********************* START SYNTHESIZING RECORDS ********************")
 
@@ -194,31 +170,30 @@ class PrivSyn(Synthesizer):
         print(self.synthesized_df)
         return self.synthesized_df
 
-    #  we have a graph where nodes represent attributes and edges represent marginals,
-    #  it helps in terms of running time and accuracy if we do it cluster by cluster
     def synthesize_records(
         self,
-        attr_list: Attrs,
-        domain_size_list: Domains,
-        clusters: Clusters,
+        attr_list: List[str],
+        domain_size_list: np.ndarray,
+        clusters: Dict[Tuple[str], List[Tuple[str]]],
         num_synthesize_records: int,
     ):
         print("------------------------> num of synthesized records: ")
         print(num_synthesize_records)
+
+        # For each cluster
         for cluster_attrs, list_marginal_attrs in clusters.items():
             logger.info("synthesizing for %s" % (cluster_attrs,))
 
-            # singleton_views = {attr: self.attr_view_dict[frozenset([attr])] for attr in attrs}
-            singleton_views = {}
-            for cur_attrs, view in self.attrs_view_dict.items():
+            # Collect singleton marginals for each attribute
+            singleton_marginals = {}
+            for cur_attrs, marginal_dict in self.attrs_marginal_dict.items():
                 if len(cur_attrs) == 1:
-                    # get the element from frozen set
-                    cur_attrs = list(cur_attrs)[0]
-                    singleton_views[cur_attrs] = view
+                    single_attr = list(cur_attrs)[0]
+                    singleton_marginals[single_attr] = marginal_dict
 
             synthesizer = GUM(attr_list, domain_size_list, num_synthesize_records)
             synthesizer.initialize_records(
-                list_marginal_attrs, method="singleton", singleton_views=singleton_views
+                list_marginal_attrs, method="singleton", singleton_marginals=singleton_marginals
             )
             attrs_index_map = {
                 attrs: index for index, attrs in enumerate(list_marginal_attrs)
@@ -229,14 +204,14 @@ class PrivSyn(Synthesizer):
 
                 synthesizer.update_alpha(update_iteration)
                 sorted_error_attrs = synthesizer.update_order(
-                    update_iteration, self.attrs_view_dict, list_marginal_attrs
+                    update_iteration, self.attrs_marginal_dict, list_marginal_attrs
                 )
 
                 for attrs in sorted_error_attrs:
-                    attrs_i = attrs_index_map[attrs]
                     synthesizer.update_records(
-                        self.attrs_view_dict[attrs], update_iteration, attrs
+                        self.attrs_marginal_dict[attrs], update_iteration, attrs
                     )
+
             if self.synthesized_df is None:
                 self.synthesized_df = synthesizer.df
             else:
@@ -245,93 +220,119 @@ class PrivSyn(Synthesizer):
                 ]
 
     @staticmethod
-    def normalize_views(
-        pub_onehot_view_dict: Dict,
-        pub_attr_view_dict,
-        noisy_view_dict,
-        attr_index_map,
-        num_synthesize_records,
+    def normalize_marginals(
+        pub_onehot_marginal_dict: Dict,
+        pub_attr_marginal_dict: Dict,
+        noisy_marginal_dict: Dict,
+        attr_index_map: Dict[str, int],
+        num_synthesize_records: int,
     ) -> Tuple[Dict, Dict]:
+        """
+        Optionally combine 'public' marginals with 'noisy' marginals,
+        then return updated onehot_marginal_dict and attrs_marginal_dict.
+        """
         pub_weight = 0.00
         noisy_weight = 1 - pub_weight
 
-        views_dict = pub_attr_view_dict
-        onehot_view_dict = pub_onehot_view_dict
-        for view_att, view in noisy_view_dict.items():
-            if view_att in views_dict:
-                views_dict[view_att].count = (
-                    pub_weight * pub_attr_view_dict[view_att].count
-                    + noisy_weight * view.count
+        marginals_dict = pub_attr_marginal_dict
+        onehot_marginal_dict = pub_onehot_marginal_dict
+
+        for marginal_att, new_marginal_dict in noisy_marginal_dict.items():
+            # In case the same marginal already exists in pub_attr_marginal_dict
+            if marginal_att in marginals_dict:
+                old_marginal_dict = pub_attr_marginal_dict[marginal_att]
+
+                # Blend the counts
+                blended_count = (
+                    pub_weight * old_marginal_dict["count"]
+                    + noisy_weight * new_marginal_dict["count"]
                 )
-                views_dict[view_att].weight_coeff = (
-                    pub_weight * pub_attr_view_dict[view_att].weight_coeff
-                    + noisy_weight * view.weight_coeff
+                old_marginal_dict["count"] = blended_count
+
+                # If your logic needs a weight_coeff, define it here
+                if "weight_coeff" not in old_marginal_dict:
+                    old_marginal_dict["weight_coeff"] = 1
+                if "weight_coeff" not in new_marginal_dict:
+                    new_marginal_dict["weight_coeff"] = 1
+
+                old_marginal_dict["weight_coeff"] = (
+                    pub_weight * old_marginal_dict["weight_coeff"]
+                    + noisy_weight * new_marginal_dict["weight_coeff"]
                 )
             else:
-                views_dict[view_att] = view
-                view_onehot = PrivSyn.one_hot(view_att, attr_index_map)
-                onehot_view_dict[tuple(view_onehot)] = view
-        return onehot_view_dict, views_dict
+                # Insert it new
+                marginals_dict[marginal_att] = new_marginal_dict
+                # If needed, define a default weight_coeff
+                if "weight_coeff" not in marginals_dict[marginal_att]:
+                    marginals_dict[marginal_att]["weight_coeff"] = 1
 
-    def construct_views(self, marginals: Marginals) -> Tuple[Dict, Dict]:
-        """construct views for each marginal item,
-        return 2 dictionaries, onehot2view and attr2view
+                # Build the one-hot array for this attribute set
+                marginal_onehot = PrivSyn.one_hot(marginal_att, attr_index_map)
+                onehot_marginal_dict[tuple(marginal_onehot)] = new_marginal_dict
 
+        return onehot_marginal_dict, marginals_dict
+
+    def construct_marginals(
+        self, marginals: Dict[Tuple[str], pd.DataFrame]
+    ) -> Tuple[Dict, Dict]:
         """
-        onehot_view_dict = {}
-        attr_view_dict = {}
+        Construct dictionary-based marginal objects for each given pandas table.
+        Return (onehot_marginal_dict, attr_marginal_dict).
+        """
+        onehot_marginal_dict = {}
+        attr_marginal_dict = {}
 
         for marginal_att, marginal_value in marginals.items():
-            # since one_hot is @staticmethod, we can call it by DPSyn.one_hot
-            # return value is an array marked
-            view_onehot = PrivSyn.one_hot(marginal_att, self.attr_index_map)
+            # Build the one-hot array for the attributes in 'marginal_att'
+            marginal_onehot = PrivSyn.one_hot(marginal_att, self.attr_index_map)
+            marginal_onehot_array = np.array(marginal_onehot, dtype=int)
 
-            # domain_list is an array recording the count of each attribute's candidate values
-            view = View(view_onehot, self.domain_size_list)
+            # Create a marginal_dict using marginal_utils
+            marginal_dict = marginal.create_marginal(marginal_onehot_array, self.domain_size_list)
 
-            # we use flatten to create a one-dimension array which serves for when the marginal is two-way
-            view.count = marginal_value.values.flatten()
+            # Fill in the count with the marginal data
+            marginal_dict["count"] = marginal_value.values.flatten()
 
-            # we create two dictionaries to map ... to view
-            onehot_view_dict[tuple(view_onehot)] = view
-            attr_view_dict[marginal_att] = view
+            # If needed, define default weight_coeff
+            marginal_dict["weight_coeff"] = 1
 
-            # obviously if things go well, it should match
-            if not len(view.count) == view.domain_size:
-                print(f"Length of view.count: {len(view.count)}, Length of view.domain_size: {view.domain_size}")
-                raise Exception("No match: Length of view.count does not equal view.domain_size")
+            # Map one-hot -> marginal_dict, and attributes -> marginal_dict
+            onehot_marginal_dict[tuple(marginal_onehot)] = marginal_dict
+            attr_marginal_dict[marginal_att] = marginal_dict
 
-        return onehot_view_dict, attr_view_dict
+            # Consistency check
+            if len(marginal_dict["count"]) != marginal_dict["domain_size"]:
+                msg = (
+                    f"Length of marginal_dict['count'] ({len(marginal_dict['count'])}) "
+                    f"does not match marginal_dict['domain_size'] ({marginal_dict['domain_size']})."
+                )
+                raise ValueError(msg)
 
-    # def log_result(self, result):
-    #     self.d.append(result)
+        return onehot_marginal_dict, attr_marginal_dict
 
     @staticmethod
     def build_attr_set(attrs: KeysView[Tuple[str]]) -> Tuple[str]:
         attrs_set = set()
-
         for attr in attrs:
             attrs_set.update(attr)
-
         return tuple(attrs_set)
 
-    # simple clustering: just build the data structure; not doing any clustering
-    def cluster(self, marginals: Marginals) -> Clusters:
+    def cluster(self, marginals: Dict[Tuple[str], np.ndarray]) -> Dict[Tuple[str], List[Tuple[str]]]:
+        """
+        A simple "clustering" approach that just puts all marginals together in one group.
+        """
         clusters = {}
-        keys = []
-        for marginal_attrs, _ in marginals.items():
-            keys.append(marginal_attrs)
-
-        clusters[PrivSyn.build_attr_set(marginals.keys())] = keys
+        keys = list(marginals.keys())
+        clusters[PrivSyn.build_attr_set(keys)] = keys
         return clusters
 
     @staticmethod
-    def one_hot(cur_att, attr_index_map):
-        # it marks the attributes included in cur_attr by one-hot way in a len=attr_index_map array
-        # return value is an array marked
-        
-        cur_view_key = [0] * len(attr_index_map)
+    def one_hot(cur_att: Tuple[str], attr_index_map: Dict[str, int]) -> List[int]:
+        """
+        Return a list of 0/1 flags of length len(attr_index_map) 
+        indicating which attributes appear in cur_att.
+        """
+        cur_marginal_key = [0] * len(attr_index_map)
         for attr in cur_att:
-            cur_view_key[attr_index_map[attr]] = 1
-        return cur_view_key
-        
+            cur_marginal_key[attr_index_map[attr]] = 1
+        return cur_marginal_key
