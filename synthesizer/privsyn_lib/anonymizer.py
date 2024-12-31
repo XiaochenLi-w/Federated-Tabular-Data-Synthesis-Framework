@@ -1,8 +1,16 @@
+import os
+import sys
+
+ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(ROOT)
+
 from typing import Dict, Tuple, Any
 import numpy as np
 from loguru import logger
 import copy
 from lib import advanced_composition
+import synthesizer.privsyn_lib.compute_indiff
+import synthesizer.privsyn_lib.marginal_selection
 
 
 def get_noisy_marginals(
@@ -31,6 +39,17 @@ def get_noisy_marginals(
     marginal_sets, epss = data_loader.generate_marginal_by_config(
         data_loader.private_data, marginal_config
     )
+    
+    # Calculate diff_score for all marginals
+    diff_scores = synthesizer.privsyn_lib.compute_indiff.calculate_indif(marginal_sets)
+
+    # Marginal Selection
+    args_sel = {}
+    args_sel['indif_rho'] = split_method["two-way-select"]
+    args_sel['combined_marginal_rho'] = split_method["combine"] # don't used in this phase, just as a penalty term
+    args_sel['marg_sel_threshold'] = 5000
+
+    synthesizer.privsyn_lib.marginal_selection.marginal_selection_with_diff_score(marginal_sets, diff_scores, args_sel)
 
     # Add noise
     noisy_marginals = anonymize(

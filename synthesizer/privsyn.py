@@ -32,6 +32,9 @@ def train(args, cuda, seed=0):
     # budget allocation for DP
     ratio = model_params["ratio"] if "ratio" in model_params else None
 
+    budget_split = {"one-way-publish": model_params["one-way-publish"] * epsilon, "two-way-select": model_params["two-way-select"] * epsilon,
+    "two-way-publish": model_params["two-way-publish"] * epsilon, "combine": model_params["combine"] * epsilon}
+
     # prepare data
     train_data_pd, meta_data, discrete_columns = read_csv(
         path_params["train_data"], path_params["meta_data"]
@@ -53,7 +56,7 @@ def train(args, cuda, seed=0):
     data_loader.load_data(private_data=transformed_data, encode_mapping=encode_mapping)
 
     synthesizer = PrivSyn(
-        data_loader, update_iterations, epsilon, delta, sensitivity=1, ratio=ratio
+        data_loader, update_iterations, epsilon, delta, sensitivity=1, budget_split_method=budget_split, ratio=ratio
     )
     synthesizer.train()
 

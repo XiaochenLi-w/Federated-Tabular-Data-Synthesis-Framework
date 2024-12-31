@@ -23,8 +23,8 @@ class MLConfig:
 @dataclass
 class Config:
     # Paths
-    root_dir: Path = Path(os.getenv('ROOT_DIR', '/app'))
-    tuned_params_path: Path = Path(os.getenv('TUNED_PARAMS_PATH', '/app/exp'))
+    root_dir: Path = Path(os.getenv('ROOT_DIR', ''))
+    tuned_params_path: Path = Path(os.getenv('TUNED_PARAMS_PATH', ''))
     
     # Training parameters
     nums_trials: int = int(os.getenv('NUMS_TRIALS', 50))

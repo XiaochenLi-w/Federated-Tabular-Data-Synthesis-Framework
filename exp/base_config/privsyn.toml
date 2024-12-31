@@ -1,8 +1,8 @@
 # template privsyn config file
 
 [path_params]
-meta_data = "./datasets/adult/adult_test/adult.json"
-raw_data = "./datasets/adult/adult_test/adult.csv"
+meta_data = "./datasets/adult/adult.json"
+raw_data = "./datasets/adult/adult.csv"
 train_data = "./datasets/adult/train.csv"
 val_data = "./datasets/adult/val.csv"
 test_data = "./datasets/adult/test.csv"

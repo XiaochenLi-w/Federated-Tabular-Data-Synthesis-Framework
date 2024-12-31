@@ -142,12 +142,13 @@ class PrivSyn(Synthesizer):
                 "priv_all_one_way": {"total_eps": self.eps},
             }
 
-        priv_split_method = {}
+        priv_split_method = self.budget_split_method
 
         # Step 1: get noisy marginals and make sure they are consistent
-        noisy_marginals, num_records = self.obtain_consistent_marginals(
+        _, num_records = self.obtain_consistent_marginals(
             priv_marginal_config, priv_split_method
         )
+        
         self.num_records = num_records
 
     def synthesize(self, num_records=0) -> pd.DataFrame:
@@ -202,7 +203,7 @@ class PrivSyn(Synthesizer):
             synthesizer.initialize_records(
                 list_marginal_attrs, method="singleton", singleton_marginals=singleton_marginals
             )
-
+            
             for update_iteration in range(self.update_iterations):
                 logger.info(f"Update round: {update_iteration}")
 

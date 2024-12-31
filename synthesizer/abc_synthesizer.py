@@ -17,6 +17,7 @@ class Synthesizer(object):
         eps: float, 
         delta: float, 
         sensitivity: int, 
+        budget_split_method: dict,
         ratio: float = None
     ):
         self.data = data
@@ -24,6 +25,7 @@ class Synthesizer(object):
         self.delta = delta
         self.sensitivity = sensitivity
         self.update_iterations = update_iterations
+        self.budget_split_method = budget_split_method
         self.ratio = ratio
 
     @abc.abstractmethod
