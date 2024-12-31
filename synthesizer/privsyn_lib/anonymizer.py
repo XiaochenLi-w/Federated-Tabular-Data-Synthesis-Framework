@@ -40,16 +40,20 @@ def get_noisy_marginals(
         data_loader.private_data, marginal_config
     )
     
-    # Calculate diff_score for all marginals
-    diff_scores = synthesizer.privsyn_lib.compute_indiff.calculate_indif(marginal_sets)
-
-    # Marginal Selection
     args_sel = {}
     args_sel['indif_rho'] = split_method["two-way-select"]
+    args_sel['two-way-publish'] = split_method["two-way-publish"]
     args_sel['combined_marginal_rho'] = split_method["combine"] # don't used in this phase, just as a penalty term
-    args_sel['marg_sel_threshold'] = 5000
+    args_sel['marg_sel_threshold'] = 500
 
-    synthesizer.privsyn_lib.marginal_selection.marginal_selection_with_diff_score(marginal_sets, diff_scores, args_sel)
+    # Calculate diff_score for all marginals
+    diff_scores = synthesizer.privsyn_lib.compute_indiff.calculate_indif(marginal_sets, args_sel)
+
+    # Marginal Selection
+    
+    selected_marginal_sets = synthesizer.privsyn_lib.marginal_selection.marginal_selection_with_diff_score(marginal_sets, diff_scores, args_sel)
+
+    completed_marginals = synthesizer.privsyn_lib.marginal_selection.handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate")
 
     # Add noise
     noisy_marginals = anonymize(

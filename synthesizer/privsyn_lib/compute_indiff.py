@@ -6,7 +6,7 @@ sys.path.append(ROOT)
 
 import numpy as np
 
-def calculate_indif(marginal_sets):
+def calculate_indif(marginal_sets, arg_sel):
     """
     Calculate Indif_score for all two-way marginals.
 
@@ -56,5 +56,17 @@ def calculate_indif(marginal_sets):
 
         # Store the result using the attribute pair as the key
         indif_scores[pair] = indif_score
+
+    # Add noise to Indif_scores
+    if arg_sel['indif_rho'] != 0.0:
+        keys = list(indif_scores.keys())
+        values = np.array(list(indif_scores.values()))
+        noise = np.random.normal(scale=8 * len(values) / arg_sel['indif_rho'], size=len(values))
+        noisy_values = values + noise
+
+    # Update indif_scores with noisy values
+    indif_scores = dict(zip(keys, noisy_values))
+
+    #print(indif_scores)
 
     return indif_scores

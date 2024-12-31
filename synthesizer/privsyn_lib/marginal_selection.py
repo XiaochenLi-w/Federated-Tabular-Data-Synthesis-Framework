@@ -36,23 +36,17 @@ def marginal_selection_with_diff_score(marginal_sets, Indiff_scores, select_args
     gauss_error_normalizer = 1.0
 
     while gap > select_args['marg_sel_threshold']:
-        current_score = np.sum(Indiff_scores)
+        current_score = sum(Indiff_scores.values())
         selected_index = None
 
         for j in unselected:
             select_candidate = selected.union({j})
 
-            # Convert indices to keys for calculation
-            candidate_keys = [two_way_keys[i] for i in select_candidate]
-
             cells_square_sum = np.sum(
                 np.power(num_cells[list(select_candidate)], 2.0 / 3.0))
-            gauss_constant = np.sqrt(cells_square_sum / (math.pi * select_args['combined_marginal_rho']))
+            gauss_constant = np.sqrt(cells_square_sum / (math.pi * select_args['two-way-publish']))
             gauss_error = np.sum(
                 gauss_constant * np.power(num_cells[list(select_candidate)], 2.0 / 3.0))
-
-            # Calculate the new score with the candidate marginal added
-            candidate_score = sum(Indiff_scores[key] for key in candidate_keys)
 
             gauss_error *= gauss_error_normalizer
 
@@ -60,15 +54,18 @@ def marginal_selection_with_diff_score(marginal_sets, Indiff_scores, select_args
                 Indiff_scores[two_way_keys[i]]
                 for i in unselected.difference(select_candidate)
             )
-            current_score = gauss_error + pairwise_error
+            score_temp = gauss_error + pairwise_error
 
-            if candidate_score < current_score:
+            # print("score?", current_score, score_temp)
+
+            if score_temp < current_score:
                 selected_index = j
-                current_score = candidate_score
+                current_score = score_temp
 
         # Update selection and calculate the gap
         gap = overall_score - current_score
         overall_score = current_score
+        # print("gap", gap)
 
         if selected_index is not None:
             selected.add(selected_index)
@@ -91,5 +88,57 @@ def marginal_selection_with_diff_score(marginal_sets, Indiff_scores, select_args
 
 
     print(selected_marginal_sets.keys())
+
+    return selected_marginal_sets
+
+def handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate"):
+    """
+    Handle isolated attributes that are not included in selected 2-way marginals.
+
+    Args:
+        marginal_sets (dict): The structure containing all one-way and two-way marginals.
+        selected_marginal_sets (dict): The selected 2-way marginals.
+        method (str): The method to handle isolated attributes ("isolate" or "connect").
+
+    Returns:
+        dict: Updated selected marginal sets including missing 1-way marginals.
+    """
+    # Extract one-way and two-way marginals
+    one_way_marginals = marginal_sets.get("priv_all_one_way", {})
+    two_way_marginals = marginal_sets.get("priv_all_two_way", {})
+    
+    # Extract all selected attributes from the 2-way marginals
+    selected_attrs = set()
+    for pair in selected_marginal_sets.keys():
+        selected_attrs.update(pair)
+    
+    # Find attributes that are missing in the selected 2-way marginals
+    all_attrs = set(attr for key in one_way_marginals.keys() for attr in key)
+    missing_attrs = all_attrs - selected_attrs
+
+    # Add missing 1-way marginals based on the chosen method
+    for attr in missing_attrs:
+        if method == "isolate":
+            # Add the one-way marginal for the missing attribute
+            if frozenset([attr]) in one_way_marginals:
+                selected_marginal_sets[frozenset([attr])] = one_way_marginals[frozenset([attr])]
+
+        elif method == "connect":
+            # Find the best two-way marginal to connect the isolated attribute
+            best_pair = None
+            best_score = float("inf")
+
+            for pair, marginal in two_way_marginals.items():
+                if attr in pair and any(a in selected_attrs for a in pair):
+                    # Compute a score (e.g., Indif_score or size) to choose the best connection
+                    score = np.sum(marginal.values)  # Replace with an actual scoring metric if available
+                    if score < best_score:
+                        best_pair = pair
+                        best_score = score
+
+            if best_pair:
+                selected_marginal_sets[best_pair] = two_way_marginals[best_pair]
+
+    print("Missing", selected_attrs)
 
     return selected_marginal_sets
