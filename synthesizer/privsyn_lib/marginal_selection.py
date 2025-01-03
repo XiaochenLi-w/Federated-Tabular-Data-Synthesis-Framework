@@ -87,7 +87,7 @@ def marginal_selection_with_diff_score(marginal_sets, Indiff_scores, select_args
         selected_marginal_sets[selected_key] = two_way_marginals[selected_key]
 
 
-    print(selected_marginal_sets.keys())
+    #print(selected_marginal_sets.keys())
 
     return selected_marginal_sets
 
@@ -120,8 +120,9 @@ def handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate
     for attr in missing_attrs:
         if method == "isolate":
             # Add the one-way marginal for the missing attribute
-            if frozenset([attr]) in one_way_marginals:
-                selected_marginal_sets[frozenset([attr])] = one_way_marginals[frozenset([attr])]
+            one_way_key = frozenset([attr])
+            if one_way_key in one_way_marginals:
+                selected_marginal_sets[one_way_key] = dict(one_way_marginals[one_way_key])
 
         elif method == "connect":
             # Find the best two-way marginal to connect the isolated attribute
@@ -139,6 +140,6 @@ def handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate
             if best_pair:
                 selected_marginal_sets[best_pair] = two_way_marginals[best_pair]
 
-    print("Missing", selected_attrs)
+    # print("Missing", selected_marginal_sets.keys())
 
     return selected_marginal_sets

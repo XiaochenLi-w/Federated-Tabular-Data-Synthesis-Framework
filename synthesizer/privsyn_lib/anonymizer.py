@@ -11,6 +11,7 @@ import copy
 from lib import advanced_composition
 import synthesizer.privsyn_lib.compute_indiff
 import synthesizer.privsyn_lib.marginal_selection
+import pandas as pd
 
 
 def get_noisy_marginals(
@@ -49,34 +50,42 @@ def get_noisy_marginals(
     # Calculate diff_score for all marginals
     diff_scores = synthesizer.privsyn_lib.compute_indiff.calculate_indif(marginal_sets, args_sel)
 
-    # Marginal Selection
+    # 2-way marginals selection
     
     selected_marginal_sets = synthesizer.privsyn_lib.marginal_selection.marginal_selection_with_diff_score(marginal_sets, diff_scores, args_sel)
 
+    # Add unselected 1-way marginals
+
     completed_marginals = synthesizer.privsyn_lib.marginal_selection.handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate")
+
+    converted_marginal_sets = convert_selected_marginals(completed_marginals)
+
+    #print(converted_marginal_sets)
 
     # Add noise
     noisy_marginals = anonymize(
-        copy.deepcopy(marginal_sets), epss, split_method, delta, sensitivity
+        copy.deepcopy(converted_marginal_sets), args_sel, delta, sensitivity
     )
 
-    # Calculate difference scores
-    diff_scores = []
-    for key in noisy_marginals:
-        try:
-            diff = noisy_marginals[key] - marginal_sets["priv_all_two_way"][key]
-        except:
-            diff = noisy_marginals[key] - marginal_sets["priv_all_one_way"][key]
-        diff_scores.append(diff.sum().sum())
+    #print("??", noisy_marginals.keys())
 
-    logger.info(f"Average difference score: {np.mean(diff_scores)}")
+    # # Calculate difference scores
+    # diff_scores = []
+    # for key in noisy_marginals:
+    #     try:
+    #         diff = noisy_marginals[key] - completed_marginals[key]
+    #     except:
+    #         diff = noisy_marginals[key] - completed_marginals[key]
+    #     diff_scores.append(diff.sum().sum())
+
+    # logger.info(f"Average difference score: {np.mean(diff_scores)}")
 
     del marginal_sets  # Clean up original marginals
     return noisy_marginals
 
 
 def anonymize(
-    marginal_sets: Dict, epss: Dict, split_method: Dict, delta: float, sensitivity: int
+    marginal_sets: Dict, split_method: Dict, delta: float, sensitivity: int
 ) -> Dict[Tuple[str], np.array]:
     """
     Add noise to marginals for differential privacy.
@@ -94,13 +103,14 @@ def anonymize(
     noisy_marginals = {}
 
     for set_key, marginals in marginal_sets.items():
-        # Calculate average record count before noise
-        avg_count = np.mean(
-            [np.sum(marginal.values) for marginal in marginals.values()]
-        )
-        logger.debug(f"Average record count before noise: {avg_count}")
+        # # Calculate average record count before noise
+        # avg_count = np.mean(
+        #     [np.sum(marginal.values) for marginal in marginals.values()]
+        # )
+        # logger.debug(f"Average record count before noise: {avg_count}")
 
-        eps = epss[set_key]
+        #eps = epss[set_key]
+        eps = split_method['two-way-publish']
         logger.info(
             f"Noise parameters - eps: {eps}, delta: {delta}, "
             f"sensitivity: {sensitivity}, marginals: {len(marginals)}"
@@ -136,3 +146,30 @@ def anonymize(
         )
 
     return noisy_marginals
+
+
+def convert_selected_marginals(selected_marginal_sets):
+    converted_marginal_sets = {"priv_all_one_way": {}, "priv_all_two_way": {}}
+
+    marginal_tmp_one = {}
+    marginal_tmp_two = {}
+
+    for marginal_key, marginals in selected_marginal_sets.items():
+        # Determine the category based on the number of attributes in the key
+        if isinstance(marginal_key, str):
+            attrs = marginal_key.split(",")  # Assuming attributes are comma-separated
+        else:
+            attrs = list(marginal_key)  # If marginal_key is a tuple
+
+        # One-way or two-way classification
+        if len(attrs) == 1:
+            marginal_tmp_one[marginal_key] = marginals
+        elif len(attrs) == 2:
+            marginal_tmp_two[marginal_key] = marginals
+        else:
+            raise ValueError(f"Unsupported key format: {marginal_key}")
+        
+    converted_marginal_sets["priv_all_one_way"] = marginal_tmp_one
+    converted_marginal_sets["priv_all_two_way"] = marginal_tmp_two
+ 
+    return converted_marginal_sets
