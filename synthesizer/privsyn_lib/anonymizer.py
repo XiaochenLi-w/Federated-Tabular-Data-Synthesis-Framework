@@ -60,8 +60,6 @@ def get_noisy_marginals(
 
     converted_marginal_sets = convert_selected_marginals(completed_marginals)
 
-    #print(converted_marginal_sets)
-
     # Add noise
     noisy_marginals = anonymize(
         copy.deepcopy(converted_marginal_sets), args_sel, delta, sensitivity
@@ -129,7 +127,7 @@ def anonymize(
             )
             for marginal_att, marginal in marginals.items():
                 noisy_marginals[marginal_att] = marginal + np.random.laplace(
-                    scale=noise_param, size=marginal.shape
+                    scale=noise_param, size=np.shape(marginal)
                 )
         else:
             noise_param = advanced_composition.gauss_zcdp(
@@ -137,7 +135,7 @@ def anonymize(
             )
             for marginal_att, marginal in marginals.items():
                 noisy_marginals[marginal_att] = marginal + np.random.normal(
-                    scale=noise_param, size=marginal.shape
+                    scale=noise_param, size=np.shape(marginal)
                 )
 
         logger.info(

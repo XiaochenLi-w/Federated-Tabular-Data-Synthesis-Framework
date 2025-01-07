@@ -122,7 +122,7 @@ def handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate
             # Add the one-way marginal for the missing attribute
             one_way_key = frozenset([attr])
             if one_way_key in one_way_marginals:
-                selected_marginal_sets[one_way_key] = dict(one_way_marginals[one_way_key])
+                selected_marginal_sets[one_way_key] = one_way_marginals[one_way_key]
 
         elif method == "connect":
             # Find the best two-way marginal to connect the isolated attribute

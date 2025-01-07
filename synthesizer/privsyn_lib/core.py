@@ -201,7 +201,7 @@ class PrivSyn(Synthesizer):
 
             synthesizer = GUM(attr_list, domain_size_list, num_synthesize_records)
             synthesizer.initialize_records(
-                list_marginal_attrs, method="singleton", singleton_marginals=singleton_marginals
+                list_marginal_attrs, method="random", singleton_marginals=singleton_marginals
             )
             
             for update_iteration in range(self.update_iterations):
