@@ -11,7 +11,6 @@ import copy
 from lib import advanced_composition
 import synthesizer.privsyn_lib.compute_indiff
 import synthesizer.privsyn_lib.marginal_selection
-import pandas as pd
 
 
 def get_noisy_marginals(
@@ -37,7 +36,7 @@ def get_noisy_marginals(
         Dict mapping attribute tuples to noisy marginals
     """
     # Generate marginals
-    marginal_sets, epss = data_loader.generate_marginal_by_config(
+    marginal_sets = data_loader.generate_marginal_by_config(
         data_loader.private_data, marginal_config
     )
     
@@ -64,8 +63,6 @@ def get_noisy_marginals(
     noisy_marginals = anonymize(
         copy.deepcopy(converted_marginal_sets), args_sel, delta, sensitivity
     )
-
-    #print("??", noisy_marginals.keys())
 
     # # Calculate difference scores
     # diff_scores = []

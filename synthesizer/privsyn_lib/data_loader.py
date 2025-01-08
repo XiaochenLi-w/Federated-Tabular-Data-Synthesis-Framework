@@ -150,7 +150,6 @@ class DataLoader:
 
         """
         marginal_sets = {}
-        epss = {}
         for marginal_key, marginal_dict in config.items():
             marginals = {}
             if marginal_key == "priv_all_one_way":
@@ -161,6 +160,6 @@ class DataLoader:
                 marginals.update(self.generate_all_two_way_marginals(records))
             else:
                 raise NotImplementedError
-            epss[marginal_key] = marginal_dict["total_eps"]
             marginal_sets[marginal_key] = marginals
-        return marginal_sets, epss
+            
+        return marginal_sets

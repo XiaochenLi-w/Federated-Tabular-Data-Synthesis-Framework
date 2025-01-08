@@ -76,10 +76,6 @@ def marginal_selection_with_diff_score(marginal_sets, Indiff_scores, select_args
             selected_marginals.append(frozenset([first_attr, second_attr]))
             selected_attrs.update((first_attr, second_attr))
 
-    # Handle isolated attributes
-    # selected_marginals = handle_isolated_attrs(
-    #     dataset_domain, selected_attrs, marginal_sets, selected_marginals, method="connect", sort=True)
-
     # Convert selected marginals to the same format as marginal_sets
     selected_marginal_sets = {}
     for selected_key in selected_marginals:
