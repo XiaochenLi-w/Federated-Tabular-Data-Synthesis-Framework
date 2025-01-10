@@ -9,6 +9,7 @@ import numpy as np
 from loguru import logger
 import copy
 from lib import advanced_composition
+import pandas as pd
 
 
 def get_distributed_noisy_marginals(
@@ -49,17 +50,24 @@ def get_distributed_noisy_marginals(
     two_way_marginals = marginal_sets.get("priv_all_two_way", {})
 
     # Add noise to all one-way marginals
-    noisy_one_way_marginals = anonymize_one_way_marginals(copy.deepcopy(one_way_marginals), args_sel, delta, sensitivity)
-    print(noisy_one_way_marginals)
-
-
+    noisy_one_way_marginals = anonymize_marginals(copy.deepcopy(one_way_marginals), args_sel, delta, sensitivity, Flag_ = 1)
     
+    # Map 2-way marginals onto a lower-dimensional space
+    k = 10
+    projected_two_way_marginals, projection_matrix = project_marginals(two_way_marginals, k)
+    noisy_two_way_marginals = anonymize_marginals(copy.deepcopy(projected_two_way_marginals), args_sel, delta, sensitivity, Flag_ = 2)
+
+    # Calculate Indif score
+    indif_scores = calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, args_sel, k, projection_matrix)
+    print("???", indif_scores)
+
+
 
     # del marginal_sets  # Clean up original marginals
     # return noisy_marginals
 
-def anonymize_one_way_marginals(
-    marginal_sets: Dict, split_method: Dict, delta: float, sensitivity: int
+def anonymize_marginals(
+    marginal_sets: Dict, split_method: Dict, delta: float, sensitivity: int, Flag_: int
 ) -> Dict[Tuple[str], np.array]:
 
     noisy_marginals = {}
@@ -71,8 +79,10 @@ def anonymize_one_way_marginals(
         # )
         # logger.debug(f"Average record count before noise: {avg_count}")
 
-        #eps = epss[set_key]
-        eps = split_method['noise_to_one_way_marginal']
+        if Flag_ == 1:
+            eps = split_method['noise_to_one_way_marginal']
+        else:
+            eps = split_method['noise_to_two_way_marginal']
         logger.info(
             f"Noise parameters - eps: {eps}, delta: {delta}, "
             f"sensitivity: {sensitivity}, marginals: {key}"
@@ -108,3 +118,100 @@ def anonymize_one_way_marginals(
         )
 
     return noisy_marginals
+
+def project_marginals(marginals, k):
+    """
+    Project two-way marginals onto a lower-dimensional space using a random matrix.
+
+    Parameters:
+    marginals (dict): A dictionary where keys are frozensets representing categorical pairs and 
+                      values are pandas DataFrames representing the counts.
+    k (int): The target dimensionality for the projection.
+
+    Returns:
+    dict: A dictionary with the same structure as `marginals` but with projected values.
+    """
+    projected_marginals = {}
+    random_matrices = {}
+
+    for key, df in marginals.items():
+        if len(df) <= k:
+            projected_marginals[key] = df
+            continue
+        # Extract marginals as a NumPy array and flatten it
+        marginals_array = df.values.flatten().reshape(1, -1)
+
+        # Dimensions of the original data
+        sa, sb = df.shape
+
+        # Generate the random projection matrix P_ab
+        P_ab = np.random.normal(0, 1 / np.sqrt(k), size=(sa * sb, k))
+        random_matrices[key] = P_ab
+
+        # Perform the projection
+        projected_array = marginals_array @ P_ab
+
+        # Reshape back into the original DataFrame shape
+        projected_df = pd.DataFrame(
+            projected_array
+        )
+
+        # Store the projected DataFrame in the result dictionary
+        projected_marginals[key] = projected_df
+
+    return projected_marginals, random_matrices
+
+def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, arg_sel, k, projection_matrix):
+    """
+    Calculate Indif_score for all two-way marginals.
+
+    Args:
+        marginal_sets (dict): The structure containing all two-way marginals.
+        encode_mapping (dict): The encoding mapping for the dataset.
+
+    Returns:
+        dict: A dictionary storing the Indif_score for each two-way marginal pair.
+    """
+    indif_scores = {}
+
+    for pair, real_marginal in noisy_two_way_marginals.items():
+        
+        print(projection_matrix.keys())
+        P_ab = projection_matrix[pair]
+        # Extract attributes
+        attr1, attr2 = list(pair)
+
+        # Get the one-way marginals for each attribute
+        one_way_marginal_attr1 = noisy_one_way_marginals.get(frozenset([attr1]))
+        one_way_marginal_attr2 = noisy_one_way_marginals.get(frozenset([attr2]))
+
+        # Normalize the one-way marginals
+        norm_one_way_attr1 = one_way_marginal_attr1 / np.sum(one_way_marginal_attr1.values)
+        norm_one_way_attr2 = one_way_marginal_attr2 / np.sum(one_way_marginal_attr2.values)
+
+        # Get the domain sizes for the attributes
+        domain_size_attr1 = len(norm_one_way_attr1)
+        domain_size_attr2 = len(norm_one_way_attr2)
+
+        # Create the independent distribution with shape [m, n]
+        independent_distribution = np.zeros((domain_size_attr1, domain_size_attr2))
+        for i, prob_attr1 in enumerate(norm_one_way_attr1.values.flatten()):
+            for j, prob_attr2 in enumerate(norm_one_way_attr2.values.flatten()):
+                independent_distribution[i, j] = prob_attr1 * prob_attr2
+
+        # Flatten and project the independent distribution
+        independent_distribution_flat = independent_distribution.flatten().reshape(1, -1)
+        projected_independent_distribution = independent_distribution_flat @ P_ab
+
+        # Normalize the two-way marginal
+        norm_real_marginal = real_marginal / np.sum(real_marginal.values)
+
+        # Compute the Indif_score as the sum of absolute differences
+        indif_score = np.sum(np.abs(norm_real_marginal.values - projected_independent_distribution))
+
+        # Store the result using the attribute pair as the key
+        indif_scores[pair] = indif_score
+
+    #print(indif_scores)
+
+    return indif_scores

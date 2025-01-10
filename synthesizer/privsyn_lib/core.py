@@ -121,6 +121,7 @@ class PrivSyn(Synthesizer):
             canonical_attrs = canonical_key(attrs)
             remapped_marginals[canonical_attrs] = marginal_dict["count"]
 
+
         return remapped_marginals, num_synthesize_records
 
     def train(self):
