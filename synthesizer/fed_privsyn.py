@@ -59,3 +59,39 @@ def train(args, cuda, seed=0):
     path_params = args["path_params"]
     os.makedirs(os.path.dirname(path_params["out_model"]), exist_ok=True)
     pickle.dump(model, open(path_params["out_model"], "wb"))
+
+
+def sample(args, n_samples=0, seed=0):
+    improve_reproducibility(seed)
+
+    path_params = args["path_params"]
+
+    train_data_pd, meta_data, discrete_columns = read_csv(
+        path_params["train_data"], path_params["meta_data"]
+    )
+    val_data_pd, _, _ = read_csv(path_params["val_data"], path_params["meta_data"])
+    # combine train and val data
+    data_pd = pd.concat([train_data_pd, val_data_pd], ignore_index=True, sort=False)
+
+    model = pickle.load(open(path_params["out_model"], "rb"))
+    learned_privsyn = model["learned_privsyn"]
+    data_transformer = model["data_transformer"]
+    data_loader = model["data_loader"]
+
+    # sample the same number of data as the real data
+    n_samples = n_samples if n_samples > 0 else len(data_pd)
+    syn_data = learned_privsyn.synthesize(num_records=n_samples)
+
+    syn_data = data_transformer.inverse_transform(syn_data)
+
+    # # post-processing generated data, map records with grouped/binned attribute back to original attributes
+    # print("********************* START POSTPROCESSING ***********************")
+    # postprocessor = RecordPostprocessor()
+    # syn_data = postprocessor.post_process(syn_data, data_loader.decode_mapping)
+    # syn_data = syn_data[data_pd.columns]
+    # print("------------------------>synthetic data post-processed:")
+    # print(syn_data)
+
+    os.makedirs(os.path.dirname(path_params["out_data"]), exist_ok=True)
+    # save synthetic data to csv
+    syn_data.to_csv(path_params["out_data"], index=False)
