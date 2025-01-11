@@ -19,8 +19,9 @@ epsilon = 10 # infinite privacy budget
 delta = 3.4498908254380166e-11
 max_bins = 100
 update_iterations = 50
-noise_to_one_way_marginal = 0.5
-noise_to_two_way_marginal = 0.5
+noise_to_one_way_marginal = 0.2
+noise_to_two_way_marginal = 0.2
+two-way-publish = 0.6
 
 
 [sample_params]

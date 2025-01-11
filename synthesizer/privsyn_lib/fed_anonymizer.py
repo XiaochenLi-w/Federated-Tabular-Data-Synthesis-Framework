@@ -10,6 +10,8 @@ from loguru import logger
 import copy
 from lib import advanced_composition
 import pandas as pd
+import synthesizer.privsyn_lib.marginal_selection as marginal_selection
+import synthesizer.privsyn_lib.anonymizer as anonymizer
 
 
 def get_distributed_noisy_marginals(
@@ -40,8 +42,9 @@ def get_distributed_noisy_marginals(
     
     args_sel = {}
     args_sel['noise_to_one_way_marginal'] = split_method["noise_to_one_way_marginal"]
-    args_sel['noise_to_two_way_marginal'] = split_method["noise_to_two_way_marginal"] # don't used in this phase, just as a penalty term
-    args_sel['marg_sel_threshold'] = 500
+    args_sel['noise_to_two_way_marginal'] = split_method["noise_to_two_way_marginal"]
+    args_sel['two-way-publish'] = split_method["two-way-publish"]
+    args_sel['marg_sel_threshold'] = 50
 
     #----------------Simulate the distributed collaboration process-------------------#
 
@@ -59,9 +62,25 @@ def get_distributed_noisy_marginals(
 
     # Calculate Indif score
     indif_scores = calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, args_sel, k, projection_matrix)
-    print("???", indif_scores)
 
+    # Select the marginals
+    selected_marginal_sets = marginal_selection.marginal_selection_with_diff_score(marginal_sets, indif_scores, args_sel)
 
+    # Add unselected 1-way marginals
+
+    completed_marginals = marginal_selection.handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate")
+
+    converted_marginal_sets = anonymizer.convert_selected_marginals(completed_marginals)
+
+    noisy_marginals = {}
+    for _, marginals in converted_marginal_sets.items():
+        for marginal_att, marginal in marginals.items():
+            noisy_marginals[marginal_att] = marginal
+
+    # print(noisy_marginals)
+
+    del marginal_sets  # Clean up original marginals
+    return noisy_marginals
 
     # del marginal_sets  # Clean up original marginals
     # return noisy_marginals
@@ -135,9 +154,10 @@ def project_marginals(marginals, k):
     random_matrices = {}
 
     for key, df in marginals.items():
-        if len(df) <= k:
-            projected_marginals[key] = df
-            continue
+        # Here, we ignore a fact that the lengths of some 2-way-marginals are smaller than k
+        # if len(df) <= k:
+        #     projected_marginals[key] = df
+        #     continue
         # Extract marginals as a NumPy array and flatten it
         marginals_array = df.values.flatten().reshape(1, -1)
 
@@ -176,8 +196,6 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, arg_se
 
     for pair, real_marginal in noisy_two_way_marginals.items():
         
-        print(projection_matrix.keys())
-        P_ab = projection_matrix[pair]
         # Extract attributes
         attr1, attr2 = list(pair)
 
@@ -201,12 +219,16 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, arg_se
 
         # Flatten and project the independent distribution
         independent_distribution_flat = independent_distribution.flatten().reshape(1, -1)
+       
+        # Get the same projection_matrix as two-way-marginals
+        P_ab = projection_matrix[pair]
         projected_independent_distribution = independent_distribution_flat @ P_ab
 
         # Normalize the two-way marginal
         norm_real_marginal = real_marginal / np.sum(real_marginal.values)
 
         # Compute the Indif_score as the sum of absolute differences
+        #print(pair)
         indif_score = np.sum(np.abs(norm_real_marginal.values - projected_independent_distribution))
 
         # Store the result using the attribute pair as the key

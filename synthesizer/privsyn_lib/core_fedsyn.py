@@ -68,6 +68,7 @@ class FedprivSyn(Synthesizer):
             self.delta,
             self.sensitivity)
 
+
         # Step 2: get an estimate of the number of records
         num_synthesize_records = (
             np.mean([np.sum(x.values) for _, x in noisy_marginals.items()])
