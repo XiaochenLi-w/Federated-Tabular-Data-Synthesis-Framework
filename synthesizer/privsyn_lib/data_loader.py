@@ -60,10 +60,12 @@ class DataLoader:
         marginal = records.assign(n=1).pivot_table(
             values="n", index=index_attribute, aggfunc="sum", fill_value=0
         )
+        
         # we create new indices which is in ascending order to help create a user-friendly pivot table
         indices = sorted([i for i in self.encode_mapping[index_attribute].values()])
         # and we reindex then fillna(0) means we will fill NaN with 0
         marginal = marginal.reindex(index=indices).fillna(0).astype(np.int32)
+
         return marginal
 
     def generate_two_way_marginal(
@@ -82,9 +84,12 @@ class DataLoader:
             aggfunc="sum",
             fill_value=0,
         )
+        print(marginal)
+
         # create a new ordered indices for row and column, just serving for a new display order
         indices = sorted([i for i in self.encode_mapping[index_attribute].values()])
         columns = sorted([i for i in self.encode_mapping[column_attribute].values()])
+
         marginal = (
             marginal.reindex(index=indices, columns=columns).fillna(0).astype(np.int32)
         )
@@ -92,7 +97,7 @@ class DataLoader:
         # print("*********** generating a two-way marginal *********** ")
         # print("*********** i ******* ", indices)
         # print("*********** j ******* ", columns)
-        # print(marginal)
+        
         # print("********** tmp count from the two-way marginal ****** ", np.sum(marginal.values))
 
         return marginal
@@ -107,6 +112,7 @@ class DataLoader:
         for attr in all_attrs:
             marginals[frozenset([attr])] = self.generate_one_way_marginal(records, attr)
         print("------------------------> all one way marginals generated")
+
         return marginals
 
     def generate_all_two_way_marginals(self, records: pd.DataFrame):
@@ -150,6 +156,7 @@ class DataLoader:
 
         """
         marginal_sets = {}
+
         for marginal_key, marginal_dict in config.items():
             marginals = {}
             if marginal_key == "priv_all_one_way":

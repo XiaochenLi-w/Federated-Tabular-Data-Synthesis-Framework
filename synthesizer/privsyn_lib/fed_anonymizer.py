@@ -82,9 +82,6 @@ def get_distributed_noisy_marginals(
     del marginal_sets  # Clean up original marginals
     return noisy_marginals
 
-    # del marginal_sets  # Clean up original marginals
-    # return noisy_marginals
-
 def anonymize_marginals(
     marginal_sets: Dict, split_method: Dict, delta: float, sensitivity: int, Flag_: int
 ) -> Dict[Tuple[str], np.array]:
