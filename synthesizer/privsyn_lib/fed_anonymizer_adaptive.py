@@ -224,8 +224,6 @@ def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data
             # Dynamically sample a new dataset
             # sample the same number of data as the real data
             syn_data = synthesizer.synthesize(num_records=sample_num)
-
-            syn_data = data_transformer.inverse_transform(syn_data)
             
             # Update Indiff score
             marginal_sets = data_loader.generate_marginal_by_config(syn_data, marginal_config)
@@ -233,7 +231,7 @@ def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data
 
             # Recalculate Indiff_scores based on the new dataset
             Indiff_scores = calculate_temp_indif_fed(temp_two_way_marginals, noisy_two_way_marginals, projection_matrix)
-            print(Indiff_scores)
+            # print(Indiff_scores)
 
     # Convert selected marginals to the same format as marginal_sets
     selected_marginal_sets = {}
@@ -264,6 +262,8 @@ def calculate_temp_indif_fed(temp_two_way_marginals, noisy_two_way_marginals, pr
 
         marginals_array = df.values.flatten().reshape(1, -1)
 
+        marginals_array = marginals_array / np.sum(marginals_array)
+
         # Perform the projection
         projected_array = marginals_array @ P_ab
 
@@ -275,16 +275,14 @@ def calculate_temp_indif_fed(temp_two_way_marginals, noisy_two_way_marginals, pr
         # Store the projected DataFrame in the result dictionary
         projected_marginals[key] = projected_df
 
-    # print("???", projected_marginals)
-
     for pair, real_marginal in noisy_two_way_marginals.items():
 
         # Normalize the two-way marginal
         norm_real_marginal = real_marginal / np.sum(real_marginal.values)
 
         # Compute the Indif_score as the sum of absolute differences
-        #print(pair)
-        indif_score = np.sum(np.abs(norm_real_marginal.values - projected_marginals.values))
+        # print(pair)
+        indif_score = np.sum(np.abs(norm_real_marginal.values - projected_marginals[pair].values))
 
         # Store the result using the attribute pair as the key
         indif_scores[pair] = indif_score

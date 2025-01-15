@@ -66,6 +66,8 @@ class DataLoader:
         # and we reindex then fillna(0) means we will fill NaN with 0
         marginal = marginal.reindex(index=indices).fillna(0).astype(np.int32)
 
+        #print(marginal)
+
         return marginal
 
     def generate_two_way_marginal(
@@ -84,7 +86,6 @@ class DataLoader:
             aggfunc="sum",
             fill_value=0,
         )
-        print(marginal)
 
         # create a new ordered indices for row and column, just serving for a new display order
         indices = sorted([i for i in self.encode_mapping[index_attribute].values()])
@@ -93,6 +94,8 @@ class DataLoader:
         marginal = (
             marginal.reindex(index=indices, columns=columns).fillna(0).astype(np.int32)
         )
+
+        #print("***", marginal)
 
         # print("*********** generating a two-way marginal *********** ")
         # print("*********** i ******* ", indices)
