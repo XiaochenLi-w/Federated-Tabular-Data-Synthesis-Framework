@@ -85,15 +85,20 @@ def lap_zcdp_comp(epsilon, delta, sensitivity, k):
     return math.sqrt(2.0 * (math.sqrt(k) * sensitivity / epsilon) ** 2)
 
 
-def get_noise(eps, delta, sensitivity, num_composition):
-    lap_param = lap_comp(eps, delta, sensitivity, num_composition)
-    lap_naive_var = 2 * (1.0 / lap_param ** 2)
+# def get_noise(eps, delta, sensitivity, num_composition):
+    # lap_param = lap_comp(eps, delta, sensitivity, num_composition)
+    # lap_naive_var = 2 * (1.0 / lap_param ** 2)
+
+    # gauss_param = gauss_zcdp(eps, delta, sensitivity, num_composition)
+    # gauss_var_zcdp = gauss_param ** 2
+    # if lap_naive_var < gauss_var_zcdp:
+    #     return 'lap', 1 / lap_param
+    # else:
+    #     return 'gauss', gauss_param
+
+def get_Gauss_noise(eps, delta, sensitivity, num_composition):
 
     gauss_param = gauss_zcdp(eps, delta, sensitivity, num_composition)
-    gauss_var_zcdp = gauss_param ** 2
-    if lap_naive_var < gauss_var_zcdp:
-        return 'lap', 1 / lap_param
-    else:
-        return 'gauss', gauss_param
-
-
+    # gauss_var_zcdp = gauss_param ** 2
+   
+    gauss_param

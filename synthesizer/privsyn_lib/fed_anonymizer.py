@@ -21,6 +21,7 @@ def get_distributed_noisy_marginals(
     delta: float,
     sensitivity: int,
 ) -> Dict[Tuple[str], np.array]:
+
     """
     Generate noisy marginals based on configuration.
 
@@ -39,11 +40,12 @@ def get_distributed_noisy_marginals(
     marginal_sets = data_loader.generate_marginal_by_config(
         data_loader.private_data, marginal_config
     )
-    
+
     args_sel = {}
     args_sel['noise_to_one_way_marginal'] = split_method["noise_to_one_way_marginal"]
     args_sel['noise_to_two_way_marginal'] = split_method["noise_to_two_way_marginal"]
     args_sel['two-way-publish'] = split_method["two-way-publish"]
+    args_sel['client_num'] = split_method["client_num"]
     args_sel['marg_sel_threshold'] = 50
 
     #----------------Simulate the distributed collaboration process-------------------#
@@ -53,31 +55,35 @@ def get_distributed_noisy_marginals(
     two_way_marginals = marginal_sets.get("priv_all_two_way", {})
 
     # Add noise to all one-way marginals
-    noisy_one_way_marginals = anonymize_marginals(copy.deepcopy(one_way_marginals), args_sel, delta, sensitivity, Flag_ = 1)
-    
+    noisy_one_way_marginals, sigma_1 = anonymize_marginals(copy.deepcopy(one_way_marginals), args_sel, delta, sensitivity, Flag_ = 1)
+
     # Map 2-way marginals onto a lower-dimensional space
     k = 10
     projected_two_way_marginals, projection_matrix = project_marginals(two_way_marginals, k)
-    noisy_two_way_marginals = anonymize_marginals(copy.deepcopy(projected_two_way_marginals), args_sel, delta, sensitivity, Flag_ = 2)
+    noisy_two_way_marginals, sigma_2 = anonymize_marginals(copy.deepcopy(projected_two_way_marginals), args_sel, delta, sensitivity, Flag_ = 2)
 
     # Calculate Indif score
-    indif_scores = calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, args_sel, k, projection_matrix)
+    indif_scores = calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projection_matrix, sigma_1, sigma_2, args_sel['client_num'])
 
     # Select the marginals
     selected_marginal_sets = marginal_selection.marginal_selection_with_diff_score(marginal_sets, indif_scores, args_sel)
 
-    # Add unselected 1-way marginals
+    # Add noise to the selected marginals
+    selected_marginal_sets, _ = anonymize_marginals(copy.deepcopy(selected_marginal_sets), args_sel, delta, sensitivity, Flag_ = 3)
 
+    # Add unselected 1-way marginals
     completed_marginals = marginal_selection.handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate")
 
     converted_marginal_sets = anonymizer.convert_selected_marginals(completed_marginals)
+    
+    added_one_way_marginals = converted_marginal_sets.get("priv_all_one_way", {})
+    added_one_way_marginals, _ = anonymize_marginals(copy.deepcopy(added_one_way_marginals), args_sel, delta, sensitivity, Flag_ = 3)
+    converted_marginal_sets["priv_all_one_way"] = added_one_way_marginals
 
     noisy_marginals = {}
     for _, marginals in converted_marginal_sets.items():
         for marginal_att, marginal in marginals.items():
             noisy_marginals[marginal_att] = marginal
-
-    # print(noisy_marginals)
 
     del marginal_sets  # Clean up original marginals
     return noisy_marginals
@@ -88,6 +94,19 @@ def anonymize_marginals(
 
     noisy_marginals = {}
 
+    if Flag_ == 1:
+        eps = split_method['noise_to_one_way_marginal'] / split_method['client_num']
+    elif Flag_ == 2:
+        eps = split_method['noise_to_two_way_marginal'] / split_method['client_num']
+    else:
+        eps = split_method['two-way-publish'] / split_method['client_num']
+
+    noise_param = advanced_composition.gauss_zcdp(
+            eps, delta, sensitivity, len(marginal_sets)
+        )
+    
+    print(">>>", len(marginal_sets))
+
     for key, marginal in marginal_sets.items():
         # # Calculate average record count before noise
         # avg_count = np.mean(
@@ -95,45 +114,41 @@ def anonymize_marginals(
         # )
         # logger.debug(f"Average record count before noise: {avg_count}")
 
-        if Flag_ == 1:
-            eps = split_method['noise_to_one_way_marginal']
-        else:
-            eps = split_method['noise_to_two_way_marginal']
-        logger.info(
-            f"Noise parameters - eps: {eps}, delta: {delta}, "
-            f"sensitivity: {sensitivity}, marginals: {key}"
-        )
-
         # Determine noise type and parameters
-        noise_type, noise_param = advanced_composition.get_noise(
-            eps, delta, sensitivity, len(marginal)
-        )
-        logger.info(f"Using {noise_type} noise with parameter {noise_param}")
+        # noise_type, noise_param = advanced_composition.get_noise(
+        #     eps, delta, sensitivity, len(marginal)
+        # )
+        # logger.info(f"Using {noise_type} noise with parameter {noise_param}")
 
-        # Add noise based on type
-        if noise_type == "lap":
-            noise_param = 1 / advanced_composition.lap_comp(
-                eps, delta, sensitivity, len(marginal)
-            )
+        # # Add noise based on type
+        # if noise_type == "lap":
+        #     noise_param = 1 / advanced_composition.lap_comp(
+        #         eps, delta, sensitivity, len(marginal)
+        #     )
            
-            noisy_marginals[key] = marginal + np.random.laplace(
-                    scale=noise_param, size=np.shape(marginal)
-                )
-        else:
-            noise_param = advanced_composition.gauss_zcdp(
-                eps, delta, sensitivity, len(marginal)
-            )
+        #     noisy_marginals[key] = marginal + np.random.laplace(
+        #             scale=noise_param, size=np.shape(marginal)
+        #         )
+        # else:
+        #     noise_param = advanced_composition.gauss_zcdp(
+        #         eps, delta, sensitivity, len(marginal)
+        #     )
          
-            noisy_marginals[key] = marginal + np.random.normal(
-                scale=noise_param, size=np.shape(marginal)
-            )
+        #     noisy_marginals[key] = marginal + np.random.normal(
+        #         scale=noise_param, size=np.shape(marginal)
+        #     )
+        # Add noise based on type
+         
+        noisy_marginals[key] = marginal + np.random.normal(
+            scale=noise_param, size=np.shape(marginal)
+        )
 
         logger.info(
-            f"Marginal {key}: eps={eps}, noise={noise_type}, "
+            f"Marginal {key}: eps={eps}, delta: {delta}, Gaussian Noise, "
             f"param={noise_param}, sensitivity={sensitivity}"
         )
 
-    return noisy_marginals
+    return noisy_marginals, noise_param**2
 
 def project_marginals(marginals, k):
     """
@@ -178,7 +193,7 @@ def project_marginals(marginals, k):
 
     return projected_marginals, random_matrices
 
-def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, arg_sel, k, projection_matrix):
+def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projection_matrix, sigma_1, sigma_2, c):
     """
     Calculate Indif_score for all two-way marginals.
 
@@ -228,9 +243,19 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, arg_se
         #print(pair)
         indif_score = np.sum(np.abs(norm_real_marginal.values - projected_independent_distribution))
 
+        # Debias the Indif_score
+        s_a = domain_size_attr1
+        s_b = domain_size_attr2
+        c = 1  # Assuming c is a constant; modify as needed
+        indif_score = (np.linalg.norm(norm_real_marginal.values - projected_independent_distribution) ** 2
+                          - sigma_2 * (s_b * np.sum(norm_one_way_attr1.values ** 2) + s_a * np.sum(norm_one_way_attr2.values ** 2))
+                          - c * len(P_ab[0]) * sigma_1
+                          - (s_a * s_b - (s_a + s_b)) * sigma_2 ** 2)
+
+
         # Store the result using the attribute pair as the key
         indif_scores[pair] = indif_score
 
-    #print(indif_scores)
+    print(indif_scores)
 
     return indif_scores

@@ -106,37 +106,18 @@ def anonymize(
 
         #eps = epss[set_key]
         eps = split_method['two-way-publish']
-        logger.info(
-            f"Noise parameters - eps: {eps}, delta: {delta}, "
-            f"sensitivity: {sensitivity}, marginals: {len(marginals)}"
-        )
 
-        # Determine noise type and parameters
-        noise_type, noise_param = advanced_composition.get_noise(
+        # Add noise
+        noise_param = advanced_composition.gauss_zcdp(
             eps, delta, sensitivity, len(marginals)
         )
-        logger.info(f"Using {noise_type} noise with parameter {noise_param}")
-
-        # Add noise based on type
-        if noise_type == "lap":
-            noise_param = 1 / advanced_composition.lap_comp(
-                eps, delta, sensitivity, len(marginals)
+        for marginal_att, marginal in marginals.items():
+            noisy_marginals[marginal_att] = marginal + np.random.normal(
+                scale=noise_param, size=np.shape(marginal)
             )
-            for marginal_att, marginal in marginals.items():
-                noisy_marginals[marginal_att] = marginal + np.random.laplace(
-                    scale=noise_param, size=np.shape(marginal)
-                )
-        else:
-            noise_param = advanced_composition.gauss_zcdp(
-                eps, delta, sensitivity, len(marginals)
-            )
-            for marginal_att, marginal in marginals.items():
-                noisy_marginals[marginal_att] = marginal + np.random.normal(
-                    scale=noise_param, size=np.shape(marginal)
-                )
 
         logger.info(
-            f"Marginal {set_key}: eps={eps}, noise={noise_type}, "
+            f"Marginal {set_key}: eps={eps}, delta: {delta}, Gaussian Noise, "
             f"param={noise_param}, sensitivity={sensitivity}"
         )
 

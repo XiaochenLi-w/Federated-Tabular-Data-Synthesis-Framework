@@ -124,8 +124,6 @@ class FedprivSyn(Synthesizer):
             canonical_attrs = canonical_key(attrs)
             remapped_marginals[canonical_attrs] = marginal_dict["count"]
 
-        # print("???!!", remapped_marginals)
-
         return remapped_marginals, num_synthesize_records
 
     def train(self):

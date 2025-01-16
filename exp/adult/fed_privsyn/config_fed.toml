@@ -16,12 +16,13 @@ utility_result = "./exp/fed_privsyn/utility_result.csv"
 
 [model_params]
 epsilon = 10 # infinite privacy budget
-delta = 3.4498908254380166e-11
+delta = 1e-10
 max_bins = 100
 update_iterations = 50
 noise_to_one_way_marginal = 0.2
 noise_to_two_way_marginal = 0.2
 two-way-publish = 0.6
+client_num = 10
 
 
 [sample_params]
