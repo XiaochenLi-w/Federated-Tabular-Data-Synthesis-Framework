@@ -9,20 +9,20 @@ test_data = "./datasets/adult/test.csv"
 loss_record = "./exp/adult/fed_privsyn/loss.csv"
 out_model = "./exp/adult/fed_privsyn/fed_privsyn.pkl"
 out_data = "./exp/adult/fed_privsyn/adult.csv"
-fidelity_result = "./exp/fed_privsyn/fidelity_result.csv"
-fidelity_train_result = "./exp/fed_privsyn/fidelity_train_result.csv"
-privacy_result = "./exp/fed_privsyn/privacy_result.csv"
-utility_result = "./exp/fed_privsyn/utility_result.csv"
+fidelity_result = "./exp/adult/fed_privsyn/fidelity_result.csv"
+fidelity_train_result = "./exp/adult/fed_privsyn/fidelity_train_result.csv"
+privacy_result = "./exp/adult/fed_privsyn/privacy_result.csv"
+utility_result = "./exp/adult/fed_privsyn/utility_result.csv"
 
 [model_params]
-epsilon = 10 # infinite privacy budget
+epsilon = 5 # privacy budget
 delta = 1e-10
 max_bins = 100
 update_iterations = 50
 noise_to_one_way_marginal = 0.2
 noise_to_two_way_marginal = 0.2
 two-way-publish = 0.6
-client_num = 10
+client_num = 25
 
 
 [sample_params]

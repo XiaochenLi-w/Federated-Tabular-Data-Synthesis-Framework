@@ -9,6 +9,7 @@ ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 sys.path.append(ROOT)
 
 import argparse
+import numpy as np
 from lib.commons import load_config, improve_reproducibility
 from lib.config import config
 from evaluator.utility.eval_helper import save_utility_results
@@ -31,7 +32,7 @@ def main():
     )
 
     # load template config
-    model_config = "exp/{0}/{1}/config.toml".format(args.dataset, args.model)
+    model_config = "exp/{0}/{1}/config_fed_adaptive.toml".format(args.dataset, args.model)
     model_config = load_config(os.path.join(ROOT, model_config))
 
     seed = args.seed
@@ -59,10 +60,17 @@ def main():
             model_config, query_results, n_samples=1000, seed=seed
         )
 
+    for metric, value in query_results.items():
+        query_results[metric] = {}
+        query_results[metric]["mean"] = sum(value) / len(value)
+        query_results[metric]["std"] = float(np.std(value))
+
+    print("final:", query_results)
+
     # save the result
-    save_utility_results(
-        ml_results, query_results, model_config["path_params"]["utility_result"]
-    )
+    # save_utility_results(
+    #     ml_results, query_results, model_config["path_params"]["utility_result"]
+    # )
 
 
 if __name__ == "__main__":

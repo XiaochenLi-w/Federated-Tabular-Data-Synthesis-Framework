@@ -8,6 +8,7 @@ from typing import Dict, Tuple, Any
 import numpy as np
 from loguru import logger
 import copy
+import math
 from lib import advanced_composition
 import synthesizer.privsyn_lib.compute_indiff
 import synthesizer.privsyn_lib.marginal_selection
@@ -131,6 +132,10 @@ def convert_selected_marginals(selected_marginal_sets):
     marginal_tmp_two = {}
 
     for marginal_key, marginals in selected_marginal_sets.items():
+        for key, val in marginals.items():
+            if hasattr(val, "fillna"):
+                marginals[key] = val.fillna(0.0)
+
         # Determine the category based on the number of attributes in the key
         if isinstance(marginal_key, str):
             attrs = marginal_key.split(",")  # Assuming attributes are comma-separated

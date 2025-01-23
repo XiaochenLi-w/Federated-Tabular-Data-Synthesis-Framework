@@ -85,6 +85,7 @@ def get_distributed_noisy_marginals(
         for marginal_att, marginal in marginals.items():
             noisy_marginals[marginal_att] = marginal
 
+    #print(noisy_marginals)
     del marginal_sets  # Clean up original marginals
     return noisy_marginals
 
@@ -104,42 +105,10 @@ def anonymize_marginals(
     noise_param = advanced_composition.gauss_zcdp(
             eps, delta, sensitivity, len(marginal_sets)
         )
-    
-    print(">>>", len(marginal_sets))
 
     for key, marginal in marginal_sets.items():
-        # # Calculate average record count before noise
-        # avg_count = np.mean(
-        #     [np.sum(marginal.values) for marginal in marginals.values()]
-        # )
-        # logger.debug(f"Average record count before noise: {avg_count}")
-
-        # Determine noise type and parameters
-        # noise_type, noise_param = advanced_composition.get_noise(
-        #     eps, delta, sensitivity, len(marginal)
-        # )
-        # logger.info(f"Using {noise_type} noise with parameter {noise_param}")
-
-        # # Add noise based on type
-        # if noise_type == "lap":
-        #     noise_param = 1 / advanced_composition.lap_comp(
-        #         eps, delta, sensitivity, len(marginal)
-        #     )
-           
-        #     noisy_marginals[key] = marginal + np.random.laplace(
-        #             scale=noise_param, size=np.shape(marginal)
-        #         )
-        # else:
-        #     noise_param = advanced_composition.gauss_zcdp(
-        #         eps, delta, sensitivity, len(marginal)
-        #     )
          
-        #     noisy_marginals[key] = marginal + np.random.normal(
-        #         scale=noise_param, size=np.shape(marginal)
-        #     )
-        # Add noise based on type
-         
-        noisy_marginals[key] = marginal + np.random.normal(
+        noisy_marginals[key] = marginal / np.sum(marginal) + np.random.normal(
             scale=noise_param, size=np.shape(marginal)
         )
 
@@ -216,8 +185,8 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projec
         one_way_marginal_attr2 = noisy_one_way_marginals.get(frozenset([attr2]))
 
         # Normalize the one-way marginals
-        norm_one_way_attr1 = one_way_marginal_attr1 / np.sum(one_way_marginal_attr1.values)
-        norm_one_way_attr2 = one_way_marginal_attr2 / np.sum(one_way_marginal_attr2.values)
+        norm_one_way_attr1 = one_way_marginal_attr1 #/ np.sum(one_way_marginal_attr1.values)
+        norm_one_way_attr2 = one_way_marginal_attr2 #/ np.sum(one_way_marginal_attr2.values)
 
         # Get the domain sizes for the attributes
         domain_size_attr1 = len(norm_one_way_attr1)
@@ -231,7 +200,7 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projec
 
         # Flatten and project the independent distribution
         independent_distribution_flat = independent_distribution.flatten().reshape(1, -1)
-       
+
         # Get the same projection_matrix as two-way-marginals
         P_ab = projection_matrix[pair]
         projected_independent_distribution = independent_distribution_flat @ P_ab
@@ -246,16 +215,18 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projec
         # Debias the Indif_score
         s_a = domain_size_attr1
         s_b = domain_size_attr2
-        c = 1  # Assuming c is a constant; modify as needed
-        indif_score = (np.linalg.norm(norm_real_marginal.values - projected_independent_distribution) ** 2
+        c = 10  # Assuming c is a constant; modify as needed
+
+ 
+        indif_score = np.sqrt(np.linalg.norm((norm_real_marginal.values - projected_independent_distribution)) ** 2
                           - sigma_2 * (s_b * np.sum(norm_one_way_attr1.values ** 2) + s_a * np.sum(norm_one_way_attr2.values ** 2))
                           - c * len(P_ab[0]) * sigma_1
-                          - (s_a * s_b - (s_a + s_b)) * sigma_2 ** 2)
-
-
+                          + (s_a * s_b - (s_a + s_b)) * sigma_2 ** 2)
+        
+        
         # Store the result using the attribute pair as the key
         indif_scores[pair] = indif_score
-
-    print(indif_scores)
+    
+    #print(indif_scores)
 
     return indif_scores

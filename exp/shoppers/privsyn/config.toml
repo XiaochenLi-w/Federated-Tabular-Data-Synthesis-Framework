@@ -1,0 +1,29 @@
+# template privsyn config file
+
+[path_params]
+meta_data = "./datasets/shoppers/shoppers.json"
+raw_data = "./datasets/shoppers/shoppers.csv"
+train_data = "./datasets/shoppers/train.csv"
+val_data = "./datasets/shoppers/val.csv"
+test_data = "./datasets/shoppers/test.csv"
+loss_record = "./exp/shoppers/privsyn/loss.csv"
+out_model = "./exp/shoppers/privsyn/privsyn.pkl"
+out_data = "./exp/shoppers/privsyn/shoppers.csv"
+fidelity_result = "./exp/shoppers/privsyn/fidelity_result.csv"
+fidelity_train_result = "./exp/shoppers/privsyn/fidelity_train_result.csv"
+privacy_result = "./exp/shoppers/privsyn/privacy_result.csv"
+utility_result = "./exp/shoppers/privsyn/utility_result.csv"
+
+[model_params]
+epsilon = 5 # infinite privacy budget
+delta = 1e-10
+max_bins = 100
+update_iterations = 50
+one-way-publish = 0.1
+two-way-select = 0.1
+two-way-publish = 0.8
+combine = 0.1
+
+
+[sample_params]
+num_samples = 0 # sample the same number of samples as the train+val data

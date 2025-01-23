@@ -1,0 +1,29 @@
+# template privsyn config file
+
+[path_params]
+meta_data = "./datasets/abalone/abalone.json"
+raw_data = "./datasets/abalone/abalone.csv"
+train_data = "./datasets/abalone/train.csv"
+val_data = "./datasets/abalone/val.csv"
+test_data = "./datasets/abalone/test.csv"
+loss_record = "./exp/abalone/fed_privsyn/loss.csv"
+out_model = "./exp/abalone/fed_privsyn/fed_privsyn.pkl"
+out_data = "./exp/abalone/fed_privsyn/abalone.csv"
+fidelity_result = "./exp/abalone/fed_privsyn/fidelity_result.csv"
+fidelity_train_result = "./exp/abalone/fed_privsyn/fidelity_train_result.csv"
+privacy_result = "./exp/abalone/fed_privsyn/privacy_result.csv"
+utility_result = "./exp/abalone/fed_privsyn/utility_result.csv"
+
+[model_params]
+epsilon = 5 # privacy budget
+delta = 1e-10
+max_bins = 100
+update_iterations = 50
+noise_to_one_way_marginal = 0.2
+noise_to_two_way_marginal = 0.2
+two-way-publish = 0.6
+client_num = 10
+
+
+[sample_params]
+num_samples = 0 # sample the same number of samples as the train+val data

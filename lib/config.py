@@ -28,7 +28,7 @@ class Config:
     
     # Training parameters
     nums_trials: int = int(os.getenv('NUMS_TRIALS', 50))
-    n_exps: int = int(os.getenv('N_EXPS', 10))
+    n_exps: int = int(os.getenv('N_EXPS', 3))
     min_num_per_class: int = int(os.getenv('MIN_NUM_PER_CLASS', 10))
     
     # Database

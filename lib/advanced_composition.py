@@ -65,9 +65,10 @@ def gauss_renyi(epsilon, delta, sensitivity, k):
 
 
 def gauss_zcdp(epsilon, delta, sensitivity, k):
-    tmp_var = 2 * k * sensitivity ** 2 * math.log(1 / delta)
+    tmp_var = 2 * math.log(1 / delta)
 
-    sigma = (math.sqrt(tmp_var) + math.sqrt(tmp_var + 2 * k * sensitivity ** 2 * epsilon)) / (2 * epsilon)
+    # sigma = (math.sqrt(tmp_var) + math.sqrt(tmp_var + 2 * k * sensitivity ** 2 * epsilon)) / (2 * epsilon)
+    sigma = math.sqrt(k * sensitivity ** 2) / (math.sqrt(tmp_var + 2 * epsilon) - math.sqrt(tmp_var))
 
     return sigma
 

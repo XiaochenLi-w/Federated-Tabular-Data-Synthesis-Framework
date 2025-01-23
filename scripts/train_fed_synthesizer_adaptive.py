@@ -22,7 +22,7 @@ def main():
     # load template config
     # Check if config file exists, if not create necessary directories
     config_dir = os.path.join(config.root_dir, "exp", args.dataset, args.model)
-    config_path = os.path.join(config_dir, "config.toml")
+    config_path = os.path.join(config_dir, "config_fed_adaptive.toml")
 
     if not os.path.exists(config_dir):
         os.makedirs(config_dir)

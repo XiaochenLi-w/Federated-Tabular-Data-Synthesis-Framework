@@ -49,6 +49,7 @@ def get_distributed_noisy_marginals(
     args_sel['noise_to_one_way_marginal'] = split_method["noise_to_one_way_marginal"]
     args_sel['noise_to_two_way_marginal'] = split_method["noise_to_two_way_marginal"]
     args_sel['two-way-publish'] = split_method["two-way-publish"]
+    args_sel['client_num'] = split_method["client_num"]
     args_sel['marg_sel_threshold'] = 50
 
     #----------------Simulate the distributed collaboration process-------------------#
@@ -58,15 +59,26 @@ def get_distributed_noisy_marginals(
     two_way_marginals = marginal_sets.get("priv_all_two_way", {})
 
     # Add noise to all one-way marginals
-    noisy_one_way_marginals = fed_anonymizer.anonymize_marginals(copy.deepcopy(one_way_marginals), args_sel, delta, sensitivity, Flag_ = 1)
+    noisy_one_way_marginals, sigma_1 = fed_anonymizer.anonymize_marginals(copy.deepcopy(one_way_marginals), args_sel, delta, sensitivity, Flag_ = 1)
     
     # Map 2-way marginals onto a lower-dimensional space
     k = 10
     projected_two_way_marginals, projection_matrix = fed_anonymizer.project_marginals(two_way_marginals, k)
-    noisy_two_way_marginals = fed_anonymizer.anonymize_marginals(copy.deepcopy(projected_two_way_marginals), args_sel, delta, sensitivity, Flag_ = 2)
+
+    max_norms = -1000000
+
+    for _, P_ab in projection_matrix.items():
+        # Compute row-wise Euclidean norms
+        row_norms = np.sqrt(np.sum(P_ab**2, axis=1))
+        # Take the maximum of these norms
+        tmp = np.max(row_norms)
+        if  tmp > max_norms:
+            max_norms = tmp
+
+    noisy_two_way_marginals, sigma_2 = fed_anonymizer.anonymize_marginals(copy.deepcopy(projected_two_way_marginals), args_sel, delta, max_norms, Flag_ = 2)
 
     # Calculate Indif score
-    indif_scores = fed_anonymizer.calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, args_sel, k, projection_matrix)
+    indif_scores = fed_anonymizer.calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projection_matrix, sigma_1, sigma_2, args_sel['client_num'])
 
     # Select the marginals
     selected_marginal_sets = marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data_loader, marginal_config, len(data_loader.private_data), marginal_sets,  noisy_two_way_marginals, indif_scores, projection_matrix, args_sel)
@@ -76,6 +88,11 @@ def get_distributed_noisy_marginals(
     completed_marginals = marginal_selection.handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate")
 
     converted_marginal_sets = anonymizer.convert_selected_marginals(completed_marginals)
+
+    added_one_way_marginals = converted_marginal_sets.get("priv_all_one_way", {})
+    added_one_way_marginals, _ = fed_anonymizer.anonymize_marginals(copy.deepcopy(added_one_way_marginals), args_sel, delta, sensitivity, Flag_ = 3)
+    converted_marginal_sets["priv_all_one_way"] = added_one_way_marginals
+
 
     noisy_marginals = {}
     for _, marginals in converted_marginal_sets.items():
