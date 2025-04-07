@@ -1,0 +1,150 @@
+{
+    "columns": [
+        {
+            "i2s": [
+                "Female",
+                "Male"
+            ],
+            "name": "Gender",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "min": 14.0,
+            "max": 61.0,
+            "name": "Age",
+            "type": "continuous"
+        },
+        {
+            "min": 1.45,
+            "max": 1.98,
+            "name": "Height",
+            "type": "continuous"
+        },
+        {
+            "min": 39.0,
+            "max": 173.0,
+            "name": "Weight",
+            "type": "continuous"
+        },
+        {
+            "i2s": [
+                "no",
+                "yes"
+            ],
+            "name": "family_history_with_overweight",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "no",
+                "yes"
+            ],
+            "name": "FAVC",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "min": 1.0,
+            "max": 3.0,
+            "name": "FCVC",
+            "type": "continuous"
+        },
+        {
+            "min": 1.0,
+            "max": 4.0,
+            "name": "NCP",
+            "type": "continuous"
+        },
+        {
+            "i2s": [
+                "Always",
+                "Frequently",
+                "Sometimes",
+                "no"
+            ],
+            "name": "CAEC",
+            "size": 4,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "no",
+                "yes"
+            ],
+            "name": "SMOKE",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "min": 1.0,
+            "max": 3.0,
+            "name": "CH2O",
+            "type": "continuous"
+        },
+        {
+            "i2s": [
+                "no",
+                "yes"
+            ],
+            "name": "SCC",
+            "size": 2,
+            "type": "categorical"
+        },
+        {
+            "min": 0.0,
+            "max": 3.0,
+            "name": "FAF",
+            "type": "continuous"
+        },
+        {
+            "min": 0.0,
+            "max": 2.0,
+            "name": "TUE",
+            "type": "continuous"
+        },
+        {
+            "i2s": [
+                "Always",
+                "Frequently",
+                "Sometimes",
+                "no"
+            ],
+            "name": "CALC",
+            "size": 4,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "Automobile",
+                "Bike",
+                "Motorbike",
+                "Public_Transportation",
+                "Walking"
+            ],
+            "name": "MTRANS",
+            "size": 5,
+            "type": "categorical"
+        },
+        {
+            "i2s": [
+                "Insufficient_Weight",
+                "Normal_Weight",
+                "Obesity_Type_I",
+                "Obesity_Type_II",
+                "Obesity_Type_III",
+                "Overweight_Level_I",
+                "Overweight_Level_II"
+            ],
+            "name": "label",
+            "size": 7,
+            "type": "categorical"
+        }
+    ],
+    "task": "multiclass_classification",
+    "train_size": 1350,
+    "val_size": 338,
+    "test_size": 423,
+    "label": "NObeyesdad"
+}

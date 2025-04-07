@@ -13,6 +13,8 @@ import os
 import torch
 from .data_processor import preprocess, transform_data
 
+from sklearn.preprocessing import LabelEncoder
+
 
 def read_csv(csv_filename: str, meta_filename: str = None) -> tuple:
     """
@@ -147,9 +149,13 @@ def preprocess(
             if meta_data["task"] != "regression":
                 return sklearn.preprocessing.LabelEncoder().fit(data.ravel())
             return normalize(data.reshape(-1, 1), normalization)
-        return (cat_encode if col in discrete_cols else normalize)(
-            data.reshape(-1, 1), normalization
-        )
+        if col in discrete_cols:
+            return cat_encode(data.reshape(-1, 1))
+        else:
+            return normalize(data.reshape(-1, 1), normalization)
+        # return (cat_encode if col in discrete_cols else normalize)(
+        #     data.reshape(-1, 1), normalization
+        # )
 
     def encode_features(df):
         """Transform all features in a dataframe"""
@@ -167,14 +173,19 @@ def preprocess(
     }
 
     # Transform data
+    # X_label = train_data["label"].values.ravel().reshape(1, -1)
+    # X_label_val = val_data["label"].values.ravel().reshape(1, -1)
+    le = LabelEncoder()
     return (
         [
             encode_features(train_data),
-            encodings["label"].transform(train_data["label"].values.ravel()),
+            #encodings["label"].transform(train_data["label"].values.ravel()),
+            le.fit_transform(train_data["label"].values.ravel()),
         ],
         [
             encode_features(val_data),
-            encodings["label"].transform(val_data["label"].values.ravel()),
+            #encodings["label"].transform(val_data["label"].values.ravel()),
+            le.fit_transform(val_data["label"].values.ravel()),
         ],
         encodings,
     )
@@ -187,10 +198,12 @@ def transform_data(data, encodings, meta_data):
         for col in data.columns
         if col != "label"
     ]
-
+    
+    le = LabelEncoder()
     return [
         np.concatenate(features, axis=1),
-        encodings["label"].transform(data["label"].values.ravel()),
+        #encodings["label"].transform(data["label"].values.ravel()),
+        le.fit_transform(data["label"].values.ravel())
     ]
 
 

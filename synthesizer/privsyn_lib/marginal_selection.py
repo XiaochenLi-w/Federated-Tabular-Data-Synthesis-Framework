@@ -7,7 +7,7 @@ sys.path.append(ROOT)
 import numpy as np
 import math
 
-def marginal_selection_with_diff_score(marginal_sets, Indiff_scores, select_args):
+def marginal_selection_with_diff_score(marginal_sets, Indiff_scores, select_args, sample_num, Flag_ = 0):
     """
     Selects marginals using diff_score.
     """
@@ -33,7 +33,7 @@ def marginal_selection_with_diff_score(marginal_sets, Indiff_scores, select_args
 
     two_way_keys = list(two_way_marginals.keys())  # List of keys to access marginals by index
 
-    gauss_error_normalizer = 1.0
+    # gauss_error_normalizer = 1.0
 
     while gap > select_args['marg_sel_threshold']:
         current_score = sum(Indiff_scores.values())
@@ -42,18 +42,31 @@ def marginal_selection_with_diff_score(marginal_sets, Indiff_scores, select_args
         for j in unselected:
             select_candidate = selected.union({j})
 
-            cells_square_sum = np.sum(
-                np.power(num_cells[list(select_candidate)], 2.0 / 3.0))
-            gauss_constant = np.sqrt(cells_square_sum / (math.pi * select_args['two-way-publish']))
-            gauss_error = np.sum(
-                gauss_constant * np.power(num_cells[list(select_candidate)], 2.0 / 3.0))
+            
+            gauss_error = 0
+            for select_idx in select_candidate:
+                tmp_var = 2 * math.log(1 / select_args['delta'])
+                sigma_ = math.sqrt(len(two_way_keys)) / (math.sqrt(tmp_var + 2 * select_args['two-way-publish'] / select_args['client_num']) - math.sqrt(tmp_var))
+                #print("Gaussian error:", sigma_ * np.sqrt(len(two_way_marginals[two_way_keys[select_idx]])) / sample_num)
+                #gauss_error += sigma_ * select_args['client_num'] * np.sqrt(2 / math.pi)
+                gauss_error += sigma_ * np.sqrt(len(two_way_marginals[two_way_keys[select_idx]])) / sample_num
 
-            gauss_error *= gauss_error_normalizer
+
+            # cells_square_sum = np.sum(
+            #     np.power(num_cells[list(select_candidate)], 2.0 / 3.0))
+            # gauss_constant = np.sqrt(cells_square_sum / (math.pi * select_args['two-way-publish']))
+            # gauss_error = np.sum(
+            #     gauss_constant * np.power(num_cells[list(select_candidate)], 2.0 / 3.0))
+
+            # gauss_error *= gauss_error_normalizer
 
             pairwise_error = sum(
                 Indiff_scores[two_way_keys[i]]
                 for i in unselected.difference(select_candidate)
             )
+
+            #print("???", gauss_error, pairwise_error)
+
             score_temp = gauss_error + pairwise_error
 
             # print("score?", current_score, score_temp)

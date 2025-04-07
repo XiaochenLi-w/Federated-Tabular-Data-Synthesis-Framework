@@ -14,30 +14,30 @@ def cal_fidelity(real_data, syn_data, dis_col_value_dict, normalization="minmax"
     # first, compute column-wise distance
     ret = {}
 
-    print("computing cat_error")
-    _cat_error = cat_error(real_data, syn_data, dis_col_value_dict)
-    if _cat_error:
-        ret["cat_error"] = _cat_error
+    # print("computing cat_error")
+    # _cat_error = cat_error(real_data, syn_data, dis_col_value_dict)
+    # if _cat_error:
+    #     ret["cat_error"] = _cat_error
 
-    print("computing num_error")
-    _num_error = num_error(real_data, syn_data, dis_col_value_dict)
-    if _num_error:
-        ret["cont_error"] = _num_error
+    # print("computing num_error")
+    # _num_error = num_error(real_data, syn_data, dis_col_value_dict)
+    # if _num_error:
+    #     ret["cont_error"] = _num_error
 
     print("computing num_num_error")
     _num_num_error = num_num_error(real_data, syn_data, dis_col_value_dict)
     if _num_num_error:
         ret["cont_cont_error"] = _num_num_error
 
-    print("computing cat_num_error")
-    _cat_num_error = cat_num_error(real_data, syn_data, dis_col_value_dict)
-    if _cat_num_error:
-        ret["cat_cont_error"] = _cat_num_error
+    # print("computing cat_num_error")
+    # _cat_num_error = cat_num_error(real_data, syn_data, dis_col_value_dict)
+    # if _cat_num_error:
+    #     ret["cat_cont_error"] = _cat_num_error
 
-    print("computing cat_cat_error")
-    _cat_cat_error = cat_cat_error(real_data, syn_data, dis_col_value_dict)
-    if _cat_cat_error:
-        ret["cat_cat_error"] = _cat_cat_error
+    # print("computing cat_cat_error")
+    # _cat_cat_error = cat_cat_error(real_data, syn_data, dis_col_value_dict)
+    # if _cat_cat_error:
+    #     ret["cat_cat_error"] = _cat_cat_error
 
     return ret
 

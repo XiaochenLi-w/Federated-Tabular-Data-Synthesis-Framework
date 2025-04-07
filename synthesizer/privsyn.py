@@ -33,7 +33,7 @@ def train(args, cuda, seed=0):
     ratio = model_params["ratio"] if "ratio" in model_params else None
 
     budget_split = {"one-way-publish": model_params["one-way-publish"] * epsilon, "two-way-select": model_params["two-way-select"] * epsilon,
-    "two-way-publish": model_params["two-way-publish"] * epsilon, "combine": model_params["combine"] * epsilon}
+    "two-way-publish": model_params["two-way-publish"] * epsilon, "combine": model_params["combine"] * epsilon, "client_num": model_params["client_num"], "delta": model_params["delta"]}
 
     # prepare data
     train_data_pd, meta_data, discrete_columns = read_csv(

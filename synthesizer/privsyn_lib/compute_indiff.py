@@ -5,6 +5,7 @@ ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 sys.path.append(ROOT)
 
 import numpy as np
+from lib import advanced_composition
 
 def calculate_indif(marginal_sets, arg_sel):
     """
@@ -58,15 +59,19 @@ def calculate_indif(marginal_sets, arg_sel):
         indif_scores[pair] = indif_score
 
     # Add noise to Indif_scores
+    noise_param = advanced_composition.gauss_zcdp(
+            arg_sel['indif_rho'], arg_sel['delta'], 4, len(indif_scores)
+        )
+    
     if arg_sel['indif_rho'] != 0.0:
         keys = list(indif_scores.keys())
         values = np.array(list(indif_scores.values()))
-        noise = np.random.normal(scale=8 * len(values) / arg_sel['indif_rho'], size=len(values))
+        noise = np.random.normal(scale=noise_param, size=len(values))
         noisy_values = values + noise
 
     # Update indif_scores with noisy values
     indif_scores = dict(zip(keys, noisy_values))
 
-    #print(indif_scores)
+    #print(">>>??", indif_scores)
 
     return indif_scores

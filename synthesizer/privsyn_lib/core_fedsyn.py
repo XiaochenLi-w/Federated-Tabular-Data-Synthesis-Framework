@@ -68,7 +68,7 @@ class FedprivSyn(Synthesizer):
             self.delta,
             self.sensitivity)
 
-
+        
         # Step 2: get an estimate of the number of records
         num_synthesize_records = (
             np.mean([np.sum(x.values) for _, x in noisy_marginals.items()])
@@ -282,7 +282,7 @@ class FedprivSyn(Synthesizer):
                     new_marginal_dict["weight_coeff"] = 1
 
                 # Build the one-hot array for this attribute set
-                marginal_onehot = PrivSyn.one_hot(canonical_att, attr_index_map)
+                marginal_onehot = FedprivSyn.one_hot(canonical_att, attr_index_map)
                 onehot_marginal_dict[tuple(marginal_onehot)] = new_marginal_dict
 
         return onehot_marginal_dict, marginals_dict

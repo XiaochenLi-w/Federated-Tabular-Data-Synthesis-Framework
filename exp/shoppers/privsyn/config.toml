@@ -23,6 +23,7 @@ one-way-publish = 0.1
 two-way-select = 0.1
 two-way-publish = 0.8
 combine = 0.1
+client_num = 1
 
 
 [sample_params]

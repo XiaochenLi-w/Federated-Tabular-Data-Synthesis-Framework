@@ -8,6 +8,12 @@ from evaluator.utility.xgb import train_xgb
 from evaluator.utility.simple_evaluators import *
 from evaluator.utility.query import range_query
 
+import os
+import sys
+
+ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(ROOT)
+
 TUNED_PARAMS_PATH = config.tuned_params_path
 
 
@@ -79,7 +85,7 @@ def query_evaluation(args, query_res, n_samples=1000, seed=0, tune=False):
         return query_res
 
 
-def ml_evaluation(config, dataset, cuda, seed, ml_results=[{}, {}], tune=False):
+def ml_evaluation(config, dataset, model, cuda, seed, ml_results={}, tune=False):
     """
     Evaluate the ml model on real and synthetic data
     train the model with fixed parameters
@@ -95,17 +101,20 @@ def ml_evaluation(config, dataset, cuda, seed, ml_results=[{}, {}], tune=False):
     n_class = get_n_class(config["path_params"]["meta_data"])
 
     print("fixed evaluator for ML evaluation")
-    syn_results = train_and_test(syn_data, task_type, dataset, n_class, cuda, seed, tune)
-    real_results = train_and_test(real_data, task_type, dataset, n_class, cuda, seed, tune)
+    syn_results = train_and_test(syn_data, task_type, dataset, model, n_class, cuda, seed, tune)
+    real_results = train_and_test(real_data, task_type, dataset, model, n_class, cuda, seed, tune)
 
-    if tune:
-        return [syn_results, real_results]
-    else:
-        # add the result to ml_results
-        syn_results = add_ml_results(syn_results, ml_results[0])
-        real_results = add_ml_results(real_results, ml_results[1])
+    # if tune:
+    #     return [syn_results, real_results]
+    # else:
+    #     # add the result to ml_results
+    #     syn_results = add_ml_results(syn_results, ml_results[0])
+    #     real_results = add_ml_results(real_results, ml_results[1])
+    syn_results = add_ml_results(syn_results, ml_results)
 
-        return [syn_results, real_results]
+    return syn_results
+
+        # return [syn_results, real_results]
 
 
 def add_ml_results(temp_res, results):
@@ -188,7 +197,7 @@ def prepare_ml_eval(args, tune=False):
         )
 
 
-def train_and_test(data, task_type, dataset, n_class, cuda, seed, tune=False):
+def train_and_test(data, task_type, dataset, model, n_class, cuda, seed, tune=False):
     """
     directly use fiexed parameters to train the model, and test on test data
     """
@@ -205,63 +214,63 @@ def train_and_test(data, task_type, dataset, n_class, cuda, seed, tune=False):
         train_y = np.concatenate([train[1], val[1]], axis=0)
         train_data = [train_x, train_y]
 
-    # load best lr parameters and fit synthetic data
-    print("train lr")
-    params_path = TUNED_PARAMS_PATH + "/evaluators/lr/" + "{0}.toml".format(dataset)
-    best_lr_params = load_config(params_path)
-    _, res = train_lr(best_lr_params, train_data, test, task_type, n_class)
-    result["lr"] = res
+    # # load best lr parameters and fit synthetic data
+    # print("train lr")
+    # params_path = ROOT + "/evaluators/lr/" + "{0}.toml".format(dataset) #"/evaluators/lr/" + "{0}.toml".format(dataset)
+    # best_lr_params = load_config(params_path)
+    # _, res = train_lr(best_lr_params, train_data, test, task_type, n_class)
+    # result["lr"] = res
 
     # load best rf parameters and fit synthetic data
-    params_path = TUNED_PARAMS_PATH + "/evaluators/rf/" + "{0}.toml".format(dataset)
+    params_path = ROOT + "/evaluators/rf/" + "{0}.toml".format(dataset)
     best_rf_params = load_config(params_path)
     _, res = train_rf(best_rf_params, train_data, test, task_type, n_class)
     result["rf"] = res
 
     # load best mlp parameters and fit synthetic data
     print("train mlp")
-    params_path = TUNED_PARAMS_PATH + "/evaluators/mlp/" + "{0}.toml".format(dataset)
+    params_path = ROOT + "/evaluators/mlp/" + "{0}.toml".format(dataset)
     best_mlp_params = load_config(params_path)
     _, res = train_mlp(best_mlp_params, train_data, test, task_type, n_class)
     result["mlp"] = res
 
-    # load best tree parameters and fit synthetic data
-    print("train tree")
-    params_path = TUNED_PARAMS_PATH + "/evaluators/tree/" + "{0}.toml".format(dataset)
-    best_tree_params = load_config(params_path)
-    _, res = train_tree(best_tree_params, train_data, test, task_type, n_class)
-    result["tree"] = res
+    # # load best tree parameters and fit synthetic data
+    # print("train tree")
+    # params_path = ROOT + "/evaluators/tree/" + "{0}.toml".format(dataset)
+    # best_tree_params = load_config(params_path)
+    # _, res = train_tree(best_tree_params, train_data, test, task_type, n_class)
+    # result["tree"] = res
 
-    # load best svm parameters and fit synthetic data
-    print("train svm")
-    params_path = TUNED_PARAMS_PATH + "/evaluators/svm/" + "{0}.toml".format(dataset)
-    best_svm_params = load_config(params_path)
-    _, res = train_svm(best_svm_params, train_data, test, task_type, n_class)
-    result["svm"] = res
+    # # load best svm parameters and fit synthetic data
+    # print("train svm")
+    # params_path = ROOT + "/evaluators/svm/" + "{0}.toml".format(dataset)
+    # best_svm_params = load_config(params_path)
+    # _, res = train_svm(best_svm_params, train_data, test, task_type, n_class)
+    # result["svm"] = res
 
     # load best XGBoost parameters and fit synthetic data
     print("train xgboost")
-    params_path = TUNED_PARAMS_PATH + "/evaluators/xgboost/" + "{0}.toml".format(dataset)
+    params_path = ROOT + "/evaluators/xgboost/" + "{0}.toml".format(dataset)
     best_xgb_params = load_config(params_path)
     _, res = train_xgb(best_xgb_params, train_data, test, task_type, n_class)
     result["xgboost"] = res
 
-    # load best tab_transformer parameters and fit synthetic data
-    print("train tab_transformer")
-    params_path = TUNED_PARAMS_PATH + "/evaluators/tab_transformer/" + "{0}.toml".format(dataset)
-    best_transformer_params = load_config(params_path)
-    _, res = train_tab_transformer(best_transformer_params, train_data, test, task_type, n_class, "cuda:" + cuda)
-    result["tab_transformer"] = res
+    # # load best tab_transformer parameters and fit synthetic data
+    # print("train tab_transformer")
+    # params_path = ROOT + "/evaluators/tab_transformer/" + "{0}.toml".format(dataset)
+    # best_transformer_params = load_config(params_path)
+    # _, res = train_tab_transformer(best_transformer_params, train_data, test, task_type, n_class, "cuda:" + cuda)
+    # result["tab_transformer"] = res
 
-    if tune:
-        # ignor cat_boost for fast tuning
-        return result
+    # if tune:
+    #     # ignor cat_boost for fast tuning
+    #     return result
 
-    # load best cat_boost parameters and fit synthetic data
-    print("train cat_boost")
-    params_path = TUNED_PARAMS_PATH + "/evaluators/cat_boost/" + "{0}.toml".format(dataset)
-    best_catboost_params = load_config(params_path)
-    _, res = train_catboost(best_catboost_params, train_data, test, task_type, n_class)
-    result["cat_boost"] = res
+    # # load best cat_boost parameters and fit synthetic data
+    # print("train cat_boost")
+    # params_path = TUNED_PARAMS_PATH + "/evaluators/cat_boost/" + "{0}.toml".format(dataset)
+    # best_catboost_params = load_config(params_path)
+    # _, res = train_catboost(best_catboost_params, train_data, test, task_type, n_class)
+    # result["cat_boost"] = res
 
     return result

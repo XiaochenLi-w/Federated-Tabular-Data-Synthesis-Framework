@@ -8,17 +8,20 @@ pairwise: pearson correlation score (range [0,1])
 """
 import os
 import sys
+
 ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 sys.path.append(ROOT)
 
+import numpy as np
+
 import argparse
 from lib.commons import load_config
+from lib.config import config
 from evaluator.fidelity.eval_helper import (
     save_fidelity_results,
     add_fidelity_results,
     fidelity_evaluation,
 )
-from lib.info import *
 
 
 def main():
@@ -32,33 +35,39 @@ def main():
 
     print("Evalute fidelity for dataset {0} with algorithm {1}".format(args.dataset, args.model))
     # load template config
-    model_config = "exp/{0}/{1}/privsyn.toml".format(args.dataset, args.model)
-    config = load_config(os.path.join(ROOT_DIR, model_config))
+    model_config = "exp/{0}/{1}/config.toml".format(args.dataset, args.model)
+    model_config = load_config(os.path.join(ROOT, model_config))
 
     seed = args.seed
-    n_samples = config["sample_params"]["num_samples"]
+    n_samples = model_config["sample_params"]["num_samples"]
 
     # dynamically import model interface
     synthesizer = __import__("synthesizer." + args.model, fromlist=[args.model])
 
-    model_path = config["path_params"]["out_model"]
+    model_path = model_config["path_params"]["out_model"]
     if not os.path.exists(model_path):
         raise ValueError("Please train the synthesizer first (script/train_synthesizer.py)")
 
     fidelity_res = {}
-    for i in range(N_EXPS):
-        print("Evaluate fidelity {0}/{1}".format(i + 1, N_EXPS))
+    for i in range(config.n_exps):
+        print("Evaluate fidelity {0}/{1}".format(i + 1, config.n_exps))
         seed = i
-        synthesizer.sample(config, n_samples, seed)
+        synthesizer.sample(model_config, n_samples, seed)
         # evalute with statistical metrics
-        cur_res = fidelity_evaluation(config,seed,eval_type=args.type)
+        cur_res = fidelity_evaluation(model_config,seed,eval_type=args.type)
         fidelity_res = add_fidelity_results(cur_res, fidelity_res)
 
-    if args.type == "test":
-        # save the result
-        save_fidelity_results(fidelity_res, config["path_params"]["fidelity_result"])
-    else:
-        save_fidelity_results(fidelity_res, config["path_params"]["fidelity_train_result"])
+    for metric, value in fidelity_res.items():
+        fidelity_res[metric] = {}
+        fidelity_res[metric]["mean"] = sum(value) / len(value)
+        fidelity_res[metric]["std"] = float(np.std(value))
+
+    print("final:", fidelity_res)
+    # if args.type == "test":
+    #     # save the result
+    #     save_fidelity_results(fidelity_res, config["path_params"]["fidelity_result"])
+    # else:
+    #     save_fidelity_results(fidelity_res, config["path_params"]["fidelity_train_result"])
 
 
 if __name__ == "__main__":
