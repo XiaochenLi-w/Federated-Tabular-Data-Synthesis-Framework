@@ -357,9 +357,10 @@ def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data
     two_way_keys = list(two_way_marginals.keys())  # List of keys to access marginals by index
 
     # gauss_error_normalizer = 1.0
+    current_score = sum(Indiff_scores.values())
 
     while gap > select_args['marg_sel_threshold']:
-        current_score = sum(Indiff_scores.values())
+        
         selected_index = None
             
         for j in unselected:
@@ -406,13 +407,13 @@ def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data
 ##-------------------------Synthesize Data according to the update------------------------##
             # Process isolated attributes and recalculate Indiff_scores
             if update_control % 10 == 0:
-                selected_marginal_sets = {}
+                select_marginal_sets = {}
                 for selected_key in selected_marginals:
-                    selected_marginal_sets[selected_key] = two_way_marginals[selected_key]
+                    select_marginal_sets[selected_key] = two_way_marginals[selected_key]
                 
-                selected_marginal_sets, _ = anonymize_marginals(copy.deepcopy(selected_marginal_sets), select_args, delta, sensitivity, sample_num, Flag_ = 3)
+                select_marginal_sets, _ = anonymize_marginals(copy.deepcopy(select_marginal_sets), select_args, delta, sensitivity, sample_num, Flag_ = 3)
 
-                completed_marginals = marginal_selection.handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate")
+                completed_marginals = marginal_selection.handle_isolated_attrs(marginal_sets, select_marginal_sets, method="isolate")
 
                 converted_marginal_sets = anonymizer.convert_selected_marginals(completed_marginals)
         
@@ -448,7 +449,7 @@ def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data
 
                 # Build marginal dictionaries from noisy data
                 noisy_onehot_marginal_dict, noisy_attr_marginal_dict = synthesizer.construct_marginals(
-                    completed_marginals
+                    noisy_marginals
                 )
 
                 # By default, we will not rely on any "public" data in this example,
@@ -487,15 +488,15 @@ def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data
                 syn_data = synthesizer.synthesize(num_records=sample_num)
                 
                 # Update Indiff score
-                marginal_sets = data_loader.generate_marginal_by_config(syn_data, marginal_config)
-                temp_two_way_marginals = marginal_sets.get("priv_all_two_way", {})
-
+                syn_marginal_sets = data_loader.generate_marginal_by_config(syn_data, marginal_config)
+                temp_two_way_marginals = syn_marginal_sets.get("priv_all_two_way", {})
+               
                 # Recalculate Indiff_scores based on the new dataset
-                Indiff_scores_up = calculate_temp_indif_fed(temp_two_way_marginals, noisy_two_way_marginals, projection_matrix)
+                Indiff_scores_up = calculate_temp_indif_fed(temp_two_way_marginals, noisy_two_way_marginals, projection_matrix, sample_num)
 
                 for pair, _ in Indiff_scores.items():
                     if first_attr in pair or second_attr in pair:
-                        if Indiff_scores[pair] > Indiff_scores_up[pair]:
+                        if Indiff_scores[pair] < Indiff_scores_up[pair]:
                             Indiff_scores[pair] = Indiff_scores_up[pair]
 
     # Convert selected marginals to the same format as marginal_sets
@@ -506,7 +507,7 @@ def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data
     return selected_marginal_sets
 
 
-def calculate_temp_indif_fed(temp_two_way_marginals, noisy_two_way_marginals, projection_matrix):
+def calculate_temp_indif_fed(temp_two_way_marginals, noisy_two_way_marginals, projection_matrix, sample_num):
     """
     Calculate Indif_score for all two-way marginals.
 
@@ -527,7 +528,7 @@ def calculate_temp_indif_fed(temp_two_way_marginals, noisy_two_way_marginals, pr
 
         marginals_array = df.values.flatten().reshape(1, -1)
 
-        marginals_array = marginals_array / np.sum(marginals_array)
+        marginals_array = marginals_array / sample_num
 
         # Perform the projection
         projected_array = marginals_array @ P_ab
@@ -543,11 +544,11 @@ def calculate_temp_indif_fed(temp_two_way_marginals, noisy_two_way_marginals, pr
     for pair, real_marginal in noisy_two_way_marginals.items():
 
         # Normalize the two-way marginal
-        norm_real_marginal = real_marginal / np.sum(real_marginal.values)
+        # norm_real_marginal = real_marginal / np.sum(real_marginal.values)
 
         # Compute the Indif_score as the sum of absolute differences
         # print(pair)
-        indif_score = np.sum(np.abs(norm_real_marginal.values - projected_marginals[pair].values))
+        indif_score = np.sqrt(np.linalg.norm(real_marginal.values - projected_marginals[pair].values) ** 2)
 
         # Store the result using the attribute pair as the key
         indif_scores[pair] = indif_score

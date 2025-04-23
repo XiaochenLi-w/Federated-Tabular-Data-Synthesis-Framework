@@ -15,7 +15,7 @@ privacy_result = "./exp/abalone/fed_privsyn_adaptive/privacy_result.csv"
 utility_result = "./exp/abalone/fed_privsyn_adaptive/utility_result.csv"
 
 [model_params]
-epsilon = 0.2
+epsilon = 5
 delta = 1e-10
 max_bins = 100
 update_iterations = 50

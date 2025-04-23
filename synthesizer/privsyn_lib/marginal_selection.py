@@ -35,8 +35,9 @@ def marginal_selection_with_diff_score(marginal_sets, Indiff_scores, select_args
 
     # gauss_error_normalizer = 1.0
 
-    while gap > select_args['marg_sel_threshold']:
-        current_score = sum(Indiff_scores.values())
+    current_score = sum(Indiff_scores.values())
+
+    while gap > select_args['marg_sel_threshold']: 
         selected_index = None
 
         for j in unselected:
