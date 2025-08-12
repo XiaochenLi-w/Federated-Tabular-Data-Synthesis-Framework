@@ -262,7 +262,8 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projec
         row_norms = np.sqrt(np.sum(P_ab**2, axis=1))
         sensitivity_of_P_ab = np.max(row_norms)
 
-        projected_independent_distribution = independent_distribution_flat @ P_ab - sigma_2 * sensitivity_of_P_ab ** 2 / sample_num ** 2
+        #projected_independent_distribution = independent_distribution_flat @ P_ab - sigma_2 * sensitivity_of_P_ab ** 2 / sample_num ** 2
+        projected_independent_distribution = independent_distribution_flat @ P_ab
 
         # Debias the Indif_score
         s_a = domain_size_attr1
@@ -270,13 +271,13 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projec
 
         Ep = s_a * s_b
 
-        indif_score = np.sqrt((np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 - sigma_1 / sample_num ** 2) / Ep)
+        #indif_score = np.sqrt((np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 - sigma_1 / sample_num ** 2) / Ep)
         
-        #tmp = sigma_2 ** 2 * c ** 4 * s_a * s_b / sample_num ** 4
+        cols = P_ab.shape[1]
 
-        #indif_score = np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 - c ** 2 * sigma_2 * (s_b * np.sum(norm_one_way_attr1.values ** 2) + s_a * np.sum(norm_one_way_attr2.values ** 2)) / sample_num ** 2 - sensitivity_of_P_ab ** 2 * c ** 2 * len(P_ab[0]) ** 2 * sigma_1 / sample_num ** 2 + sigma_2 ** 2 * c ** 4 * s_a * s_b / sample_num ** 4
-        #indif_score = (np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 - np.sqrt(np.sum(P_ab**2)) * (c ** 2) * sigma_2 * (s_b * np.sum(norm_one_way_attr1.values ** 2) + s_a * np.sum(norm_one_way_attr2.values ** 2)) / (sample_num ** 2) - (sensitivity_of_P_ab ** 2) * (c ** 2) * (len(P_ab[0]) ** 2) * sigma_1 / (sample_num ** 2) + tmp * Ep) / Ep
-
+        indif_score = np.sqrt((np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 
+        - c ** 2 * sigma_1 * (s_b * np.linalg.norm(norm_one_way_attr1) ** 2 + s_a * np.linalg.norm(norm_one_way_attr2) ** 2) * np.linalg.norm(P_ab) ** 2 / (sample_num ** 2)
+        - c ** 2 * sigma_2 * cols ** 2 / sample_num ** 2 + np.power(c, 4) * sigma_1 ** 2 * s_b ** 2 * s_a ** 2 / (np.power(sample_num, 4))) / Ep)
         # Store the result using the attribute pair as the key
         indif_scores[pair] = indif_score
 
