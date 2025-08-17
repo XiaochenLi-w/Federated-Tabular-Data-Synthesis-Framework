@@ -16,7 +16,7 @@ def main():
     parser.add_argument("--dataset", "-d", type=str, default="adult")
     parser.add_argument("--cuda", "-c", type=str, default="0")
     parser.add_argument("--seed", type=int, default=0)
-
+    
     args = parser.parse_args()
 
     # load template config

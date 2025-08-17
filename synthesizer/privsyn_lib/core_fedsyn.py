@@ -66,7 +66,8 @@ class FedprivSyn(Synthesizer):
             priv_marginal_config,
             priv_split_method,
             self.delta,
-            self.sensitivity)
+            self.sensitivity,
+        )
 
         
         # Step 2: get an estimate of the number of records
