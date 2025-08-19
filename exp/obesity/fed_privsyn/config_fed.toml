@@ -22,7 +22,8 @@ update_iterations = 50
 noise_to_one_way_marginal = 0.1
 noise_to_two_way_marginal = 0.1
 two-way-publish = 0.8
-client_num = 10
+client_num = 5
+disttype = "uniform"
 
 
 [sample_params]

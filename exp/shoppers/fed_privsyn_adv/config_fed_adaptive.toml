@@ -6,13 +6,13 @@ raw_data = "./datasets/shoppers/shoppers.csv"
 train_data = "./datasets/shoppers/train.csv"
 val_data = "./datasets/shoppers/val.csv"
 test_data = "./datasets/shoppers/test.csv"
-loss_record = "./exp/shoppers/fed_privsyn_adaptive/loss.csv"
-out_model = "./exp/shoppers/fed_privsyn_adaptive/fed_privsyn.pkl"
-out_data = "./exp/shoppers/fed_privsyn_adaptive/shoppers.csv"
-fidelity_result = "./exp/shoppers/fed_privsyn_adaptive/fidelity_result.csv"
-fidelity_train_result = "./exp/shoppers/fed_privsyn_adaptive/fidelity_train_result.csv"
-privacy_result = "./exp/shoppers/fed_privsyn_adaptive/privacy_result.csv"
-utility_result = "./exp/shoppers/fed_privsyn_adaptive/utility_result.csv"
+loss_record = "./exp/shoppers/fed_privsyn_adv/loss.csv"
+out_model = "./exp/shoppers/fed_privsyn_adv/fed_privsyn.pkl"
+out_data = "./exp/shoppers/fed_privsyn_adv/shoppers.csv"
+fidelity_result = "./exp/shoppers/fed_privsyn_adv/fidelity_result.csv"
+fidelity_train_result = "./exp/shoppers/fed_privsyn_adv/fidelity_train_result.csv"
+privacy_result = "./exp/shoppers/fed_privsyn_adv/privacy_result.csv"
+utility_result = "./exp/shoppers/fed_privsyn_adv/utility_result.csv"
 
 [model_params]
 epsilon = 5
@@ -22,7 +22,8 @@ update_iterations = 50
 noise_to_one_way_marginal = 0.1
 noise_to_two_way_marginal = 0.1
 two-way-publish = 0.8
-client_num = 10
+client_num = 5
+disttype = "uniform"
 
 
 [sample_params]

@@ -25,7 +25,7 @@ def train(args, cuda, seed=0):
     max_bins = model_params["max_bins"]
     update_iterations = model_params["update_iterations"]
 
-    budget_split = {"noise_to_one_way_marginal": model_params["noise_to_one_way_marginal"] * epsilon, "noise_to_two_way_marginal": model_params["noise_to_two_way_marginal"] * epsilon, "two-way-publish": model_params["two-way-publish"] * epsilon, "client_num": model_params["client_num"], "delta": model_params["delta"]}
+    budget_split = {"noise_to_one_way_marginal": model_params["noise_to_one_way_marginal"] * epsilon, "noise_to_two_way_marginal": model_params["noise_to_two_way_marginal"] * epsilon, "two-way-publish": model_params["two-way-publish"] * epsilon, "client_num": model_params["client_num"], "dist_method": model_params["disttype"], "delta": model_params["delta"]}
 
     # prepare data
     train_data_pd, meta_data, discrete_columns = read_csv(

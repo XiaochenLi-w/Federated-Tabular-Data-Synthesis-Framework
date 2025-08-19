@@ -38,21 +38,21 @@ def get_distributed_noisy_marginals(
     """
     c = split_method["client_num"]
     dist_method = split_method["dist_method"]
-    # 获取全量数据
+    # obtain full data
     full_data = data_loader.private_data
 
     data_splits, sizes, sample_num_total = _split_records(
     df=full_data,
     c=c,
-    dist_method=dist_method,  # 支持 'uniform'/'均匀随机分布' 和 'random'/'随机分配'
+    dist_method=dist_method,  # support 'uniform' and 'random'
     )
 
-    # 之后的循环里，用 n_i 和 sample_num_total 做加权
+    # use n_i and sample_num_total as weight
     aggregated_one_way = {}
     aggregated_two_way = {}
 
     for user_data, n_i in zip(data_splits, sizes):
-        # 生成该客户端的 marginals
+        # generate marginals on the client
         marginal_sets = data_loader.generate_marginal_by_config(user_data, marginal_config)
 
         args_sel = {
@@ -67,10 +67,10 @@ def get_distributed_noisy_marginals(
         one_way_marginals = marginal_sets.get("priv_all_one_way", {})
         two_way_marginals = marginal_sets.get("priv_all_two_way", {})
 
-        # 该客户端样本数
+        # number of clients
         sample_num_client = n_i
 
-        # 加噪
+        # add noise
         noisy_one_way_marginals, sigma_1 = anonymize_marginals(
             copy.deepcopy(one_way_marginals),
             args_sel, delta, sensitivity, sample_num_client, Flag_=1
@@ -89,7 +89,7 @@ def get_distributed_noisy_marginals(
             args_sel, delta, max_norms, sample_num_client, Flag_=2
         )
 
-        # 按 n_i / sample_num_total 比例聚合
+        # aggregate with n_i / sample_num_total
         w = n_i / float(sample_num_total)
 
         for k_attr, arr in noisy_one_way_marginals.items():
@@ -104,14 +104,13 @@ def get_distributed_noisy_marginals(
             else:
                 aggregated_two_way[k_attr] += arr * w
 
-    # ---------------- Step 4: 返回结果 ---------------- #
-   
+
     noisy_one_way_marginals = aggregated_one_way
     noisy_two_way_marginals = aggregated_two_way
 
-    # ---------------- 计算 alpha ---------------- #
+    # ---------------- compute alpha ---------------- #
     #alpha = sum([n_i ** 2 for n_i in sizes]) / (sample_num_total ** 2)
-    alpha = 1 / (sample_num_total ** 2)
+    alpha = 1 / (sample_num_total ** 2) # we add noise to count instead of frequency
 
     # # Generate marginals
     # marginal_sets = data_loader.generate_marginal_by_config(

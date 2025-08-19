@@ -55,50 +55,125 @@ def get_distributed_noisy_marginals(
     args_sel['marg_sel_threshold'] = 0.1
 
     #----------------Simulate the distributed collaboration process-------------------#
+    c = split_method["client_num"]
+    dist_method = split_method["dist_method"]
+    # obtain full data
+    full_data = data_loader.private_data
 
-    # Compute all one-way marginals and two-way marginals on User side. (In practice, these are distributed across multiple clients)
-    one_way_marginals = marginal_sets.get("priv_all_one_way", {})
-    two_way_marginals = marginal_sets.get("priv_all_two_way", {})
+    data_splits, sizes, sample_num_total = _split_records(
+    df=full_data,
+    c=c,
+    dist_method=dist_method,  # support 'uniform' and 'random'
+    )
 
-    # Get any marginal from one_way_marginals
-    any_key = next(iter(one_way_marginals))  # Get a random key
-    sample_num = int(np.sum(one_way_marginals[any_key]))  # Compute sum of values
+    # use n_i and sample_num_total as weight
+    aggregated_one_way = {}
+    aggregated_two_way = {}
+
+    for user_data, n_i in zip(data_splits, sizes):
+        # generate marginals on the client
+        marginal_sets = data_loader.generate_marginal_by_config(user_data, marginal_config)
+
+        args_sel = {
+            'noise_to_one_way_marginal': split_method["noise_to_one_way_marginal"],
+            'noise_to_two_way_marginal': split_method["noise_to_two_way_marginal"],
+            'two-way-publish': split_method["two-way-publish"],
+            'client_num': split_method["client_num"],
+            'delta': split_method["delta"],
+            'marg_sel_threshold': 0.1,
+        }
+
+        one_way_marginals = marginal_sets.get("priv_all_one_way", {})
+        two_way_marginals = marginal_sets.get("priv_all_two_way", {})
+
+        # number of clients
+        sample_num_client = n_i
+
+        # add noise
+        noisy_one_way_marginals, sigma_1 = anonymize_marginals(
+            copy.deepcopy(one_way_marginals),
+            args_sel, delta, sensitivity, sample_num_client, Flag_=1
+        )
+
+        k = 10
+        projected_two_way_marginals, projection_matrix = project_marginals(two_way_marginals, k)
+
+        max_norms = -1e9
+        for _, P_ab in projection_matrix.items():
+            row_norms = np.sqrt(np.sum(P_ab**2, axis=1))
+            max_norms = max(max_norms, float(np.max(row_norms)))
+
+        noisy_two_way_marginals, sigma_2 = anonymize_marginals(
+            copy.deepcopy(projected_two_way_marginals),
+            args_sel, delta, max_norms, sample_num_client, Flag_=2
+        )
+
+        # aggregate with n_i / sample_num_total
+        w = n_i / float(sample_num_total)
+
+        for k_attr, arr in noisy_one_way_marginals.items():
+            if k_attr not in aggregated_one_way:
+                aggregated_one_way[k_attr] = arr * w
+            else:
+                aggregated_one_way[k_attr] += arr * w
+
+        for k_attr, arr in noisy_two_way_marginals.items():
+            if k_attr not in aggregated_two_way:
+                aggregated_two_way[k_attr] = arr * w
+            else:
+                aggregated_two_way[k_attr] += arr * w
+
+
+    noisy_one_way_marginals = aggregated_one_way
+    noisy_two_way_marginals = aggregated_two_way
+
+    # ---------------- compute alpha ---------------- #
+    #alpha = sum([n_i ** 2 for n_i in sizes]) / (sample_num_total ** 2)
+    alpha = 1 / (sample_num_total ** 2) # we add noise to count instead of frequency
+
+    # # Compute all one-way marginals and two-way marginals on User side. (In practice, these are distributed across multiple clients)
+    # one_way_marginals = marginal_sets.get("priv_all_one_way", {})
+    # two_way_marginals = marginal_sets.get("priv_all_two_way", {})
+
+    # # Get any marginal from one_way_marginals
+    # any_key = next(iter(one_way_marginals))  # Get a random key
+    # sample_num = int(np.sum(one_way_marginals[any_key]))  # Compute sum of values
     
-    # indif_scores_list = []
+    # # indif_scores_list = []
     
-    # icoun = 0
-    # for _ in range(20):
+    # # icoun = 0
+    # # for _ in range(20):
 
-    # Add noise to all one-way marginals
-    noisy_one_way_marginals, sigma_1 = anonymize_marginals(copy.deepcopy(one_way_marginals), args_sel, delta, sensitivity, sample_num, Flag_ = 1)
+    # # Add noise to all one-way marginals
+    # noisy_one_way_marginals, sigma_1 = anonymize_marginals(copy.deepcopy(one_way_marginals), args_sel, delta, sensitivity, sample_num, Flag_ = 1)
     
-    # Map 2-way marginals onto a lower-dimensional space
-    k = 10
-    projected_two_way_marginals, projection_matrix = project_marginals(two_way_marginals, k)
+    # # Map 2-way marginals onto a lower-dimensional space
+    # k = 10
+    # projected_two_way_marginals, projection_matrix = project_marginals(two_way_marginals, k)
     
-    max_norms = -1000000
+    # max_norms = -1000000
 
-    for _, P_ab in projection_matrix.items():
-        # Compute row-wise Euclidean norms
-        row_norms = np.sqrt(np.sum(P_ab**2, axis=1))
-        # Take the maximum of these norms
-        tmp = np.max(row_norms)
-        if  tmp > max_norms:
-            max_norms = tmp
+    # for _, P_ab in projection_matrix.items():
+    #     # Compute row-wise Euclidean norms
+    #     row_norms = np.sqrt(np.sum(P_ab**2, axis=1))
+    #     # Take the maximum of these norms
+    #     tmp = np.max(row_norms)
+    #     if  tmp > max_norms:
+    #         max_norms = tmp
 
-    noisy_two_way_marginals, sigma_2 = anonymize_marginals(copy.deepcopy(projected_two_way_marginals), args_sel, delta, max_norms, sample_num, Flag_ = 2)
+    # noisy_two_way_marginals, sigma_2 = anonymize_marginals(copy.deepcopy(projected_two_way_marginals), args_sel, delta, max_norms, sample_num, Flag_ = 2)
 
     # Calculate Indif score
-    indif_scores = calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projection_matrix, sigma_1, sigma_2, args_sel['client_num'], sample_num)
+    indif_scores = calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projection_matrix, sigma_1, sigma_2, args_sel['client_num'], sample_num_total, alpha)
 
     # Select the marginals
     #selected_marginal_sets = marginal_selection.marginal_selection_with_diff_score(marginal_sets, indif_scores, args_sel, sample_num, Flag_ = 1)
-    selected_marginal_sets = marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data_loader, marginal_config, sample_num, marginal_sets,  noisy_two_way_marginals, indif_scores, projection_matrix, args_sel, delta, sensitivity)
+    selected_marginal_sets = marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data_loader, marginal_config, sample_num_total, marginal_sets,  noisy_two_way_marginals, indif_scores, projection_matrix, args_sel, delta, sensitivity)
 
     
     print("???", len(selected_marginal_sets.keys()))
     # Add noise to the selected marginals
-    selected_marginal_sets, _ = anonymize_marginals(copy.deepcopy(selected_marginal_sets), args_sel, delta, sensitivity, sample_num, Flag_ = 3)
+    selected_marginal_sets, _ = anonymize_marginals(copy.deepcopy(selected_marginal_sets), args_sel, delta, sensitivity, sample_num_total, Flag_ = 3)
 
     # Add unselected 1-way marginals
     completed_marginals = marginal_selection.handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate")
@@ -106,7 +181,7 @@ def get_distributed_noisy_marginals(
     converted_marginal_sets = anonymizer.convert_selected_marginals(completed_marginals)
     
     added_one_way_marginals = converted_marginal_sets.get("priv_all_one_way", {})
-    added_one_way_marginals, _ = anonymize_marginals(copy.deepcopy(added_one_way_marginals), args_sel, delta, sensitivity, sample_num, Flag_ = 3)
+    added_one_way_marginals, _ = anonymize_marginals(copy.deepcopy(added_one_way_marginals), args_sel, delta, sensitivity, sample_num_total, Flag_ = 3)
     converted_marginal_sets["priv_all_one_way"] = added_one_way_marginals
 
     noisy_marginals = {}
@@ -196,7 +271,7 @@ def project_marginals(marginals, k):
 
     return projected_marginals, random_matrices
 
-def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projection_matrix, sigma_1, sigma_2, c, sample_num):
+def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projection_matrix, sigma_1, sigma_2, c, sample_num, alpha):
     """
     Calculate Indif_score for all two-way marginals.
 
@@ -241,7 +316,8 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projec
         row_norms = np.sqrt(np.sum(P_ab**2, axis=1))
         sensitivity_of_P_ab = np.max(row_norms)
 
-        projected_independent_distribution = independent_distribution_flat @ P_ab - sigma_2 * sensitivity_of_P_ab ** 2 / sample_num ** 2
+        #projected_independent_distribution = independent_distribution_flat @ P_ab - sigma_2 * sensitivity_of_P_ab ** 2 / sample_num ** 2
+        projected_independent_distribution = independent_distribution_flat @ P_ab
 
         # Debias the Indif_score
         s_a = domain_size_attr1
@@ -249,16 +325,20 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projec
 
         Ep = s_a * s_b
 
-        indif_score = np.sqrt((np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 - sigma_1 / sample_num ** 2) / Ep)
+        #indif_score = np.sqrt((np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 - sigma_1 / sample_num ** 2) / Ep)
         
-        #tmp = sigma_2 ** 2 * c ** 4 * s_a * s_b / sample_num ** 4
+        cols = P_ab.shape[1]
 
-        #indif_score = np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 - c ** 2 * sigma_2 * (s_b * np.sum(norm_one_way_attr1.values ** 2) + s_a * np.sum(norm_one_way_attr2.values ** 2)) / sample_num ** 2 - sensitivity_of_P_ab ** 2 * c ** 2 * len(P_ab[0]) ** 2 * sigma_1 / sample_num ** 2 + sigma_2 ** 2 * c ** 4 * s_a * s_b / sample_num ** 4
-        #indif_score = (np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 - np.sqrt(np.sum(P_ab**2)) * (c ** 2) * sigma_2 * (s_b * np.sum(norm_one_way_attr1.values ** 2) + s_a * np.sum(norm_one_way_attr2.values ** 2)) / (sample_num ** 2) - (sensitivity_of_P_ab ** 2) * (c ** 2) * (len(P_ab[0]) ** 2) * sigma_1 / (sample_num ** 2) + tmp * Ep) / Ep
-
+        # indif_score = np.sqrt((np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 
+        # - c ** 2 * sigma_1 * (s_b * np.linalg.norm(norm_one_way_attr1) ** 2 + s_a * np.linalg.norm(norm_one_way_attr2) ** 2) * np.linalg.norm(P_ab) ** 2 / (sample_num ** 2)
+        # - c ** 2 * sigma_2 * cols ** 2 / sample_num ** 2 + np.power(c, 4) * sigma_1 ** 2 * s_b ** 2 * s_a ** 2 / (np.power(sample_num, 4))) / Ep)
+        
+        indif_score = np.sqrt(np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 
+        - cols * alpha * sigma_2 - alpha * sigma_1 * (s_b * np.linalg.norm(norm_one_way_attr1) ** 2 + s_a * np.linalg.norm(norm_one_way_attr2) ** 2) + s_a * s_b * alpha ** 2 * sigma_1 ** 2)
+        
         # Store the result using the attribute pair as the key
         indif_scores[pair] = indif_score
-
+    
     print(indif_scores)
 
     return indif_scores
@@ -564,3 +644,48 @@ def canonical_key(attrs):
     if isinstance(attrs, (list, set, frozenset)):
         return tuple(sorted(attrs))
     return attrs  # if already a tuple or string, just return as is
+
+def _split_records(df: pd.DataFrame, c: int, dist_method: str):
+    """
+    将 DataFrame 随机打乱后切分为 c 份，返回 (splits, sizes, total_num)
+    支持:
+      - 均匀随机分布: 每份尽量相等 (array_split)
+      - 随机分配: 每份长度不同, 但总和为 total_num (随机切分点)
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("data_loader.private_data must be pandas.DataFrame")
+
+    total_num = len(df)
+    if c <= 0:
+        raise ValueError("c must be integer")
+    if c > total_num:
+        raise ValueError("c must be smaller than totall num")
+
+    # 兼容中英文写法
+    dm = dist_method.lower()
+    if dm == "uniform":
+        # 先打乱行位置，再尽量等分
+        perm = np.random.permutation(total_num)
+        idx_chunks = np.array_split(perm, c)          # 近似等分 (大小相差不超过 1)
+        splits = [df.iloc[idx_chunk] for idx_chunk in idx_chunks]
+        sizes = [len(s) for s in splits]
+
+    elif dm == "random":
+        # 生成 c-1 个不重复切分点，保证每份 >= 1
+        cuts = sorted(np.random.choice(np.arange(1, total_num), size=c-1, replace=False))
+        bounds = [0] + cuts + [total_num]
+        sizes = [bounds[i+1] - bounds[i] for i in range(c)]
+
+        # 再打乱整体索引，按 sizes 逐段切
+        perm = np.random.permutation(total_num)
+        splits = []
+        start = 0
+        for sz in sizes:
+            splits.append(df.iloc[perm[start:start+sz]])
+            start += sz
+    else:
+        raise ValueError("dist_method must be 'uniform' or 'random'")
+
+    # 防御式检查
+    assert sum(sizes) == total_num, "切分总数与原数据不一致。"
+    return splits, sizes, total_num
