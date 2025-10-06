@@ -203,7 +203,7 @@ def get_distributed_noisy_marginals(
     converted_marginal_sets = anonymizer.convert_selected_marginals(completed_marginals)
     
     added_one_way_marginals = converted_marginal_sets.get("priv_all_one_way", {})
-    added_one_way_marginals, _ = anonymize_marginals(copy.deepcopy(added_one_way_marginals), args_sel, delta, sensitivity, sample_num_total, Flag_ = 3)
+    added_one_way_marginals, _ = anonymize_marginals(copy.deepcopy(added_one_way_marginals), args_sel, delta, sensitivity, sample_num_total, Flag_ = 1)
     converted_marginal_sets["priv_all_one_way"] = added_one_way_marginals
 
     noisy_marginals = {}

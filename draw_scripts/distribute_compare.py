@@ -119,10 +119,10 @@ def plot_pca_projection(df_real, df_gen, numeric_attrs, pca, ax, title, color_li
 
 if __name__ == "__main__":
     # ==== 数据路径 ====
-    real_path = "./dataset/insurance_org.csv"
-    gen_path_fed  = "./dataset/insurance_fed_privsyn.csv"
-    gen_path_adv  = "./dataset/insurance_adv_privsyn.csv"
-    gen_path_privsyn = "./dataset/insurance_privsyn.csv"
+    real_path = "D:/Fed_Privsyn/Tabular-Data-Synthesis-Framework/draw_scripts/dataset/insurance_org.csv"
+    gen_path_fed  = "D:/Fed_Privsyn/Tabular-Data-Synthesis-Framework/draw_scripts/dataset/insurance_fed_privsyn.csv"
+    gen_path_adv  = "D:/Fed_Privsyn/Tabular-Data-Synthesis-Framework/draw_scripts/dataset/insurance_adv_privsyn.csv"
+    gen_path_privsyn = "D:/Fed_Privsyn/Tabular-Data-Synthesis-Framework/draw_scripts/dataset/insurance_privsyn.csv"
 
     # 载入原始数据
     df_real = pd.read_csv(real_path)
@@ -155,4 +155,4 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.show()
-    fig.savefig('D:/fedsyn/Tabular-Data-Synthesis-Framework/draw_scripts/fig/pca.pdf')
+    fig.savefig('D:/Fed_Privsyn/Tabular-Data-Synthesis-Framework/draw_scripts/fig/pca.pdf')

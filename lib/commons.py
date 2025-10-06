@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import sklearn.preprocessing
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score, r2_score, roc_auc_score, mean_squared_error
+from sklearn.metrics import f1_score, r2_score, roc_auc_score, root_mean_squared_error
 import random
 import os
 import torch
@@ -235,7 +235,7 @@ def cal_metrics(
     """
     if task_type == "regression":
         r2 = r2_score(y_true, y_pred)
-        rmse = mean_squared_error(y_true, y_pred, squared=False)
+        rmse = root_mean_squared_error(y_true, y_pred)
         return {
             "r2": r2,
             "rmse": rmse,

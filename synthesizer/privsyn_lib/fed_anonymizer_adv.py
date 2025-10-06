@@ -92,7 +92,7 @@ def get_distributed_noisy_marginals(
         # add noise
         noisy_one_way_marginals, sigma_1 = anonymize_marginals(
             copy.deepcopy(one_way_marginals),
-            args_sel, delta, sensitivity, sample_num_client, Flag_=1
+            args_sel, delta, sensitivity, sample_num_client, 0, Flag_=1
         )
 
         k = 10
@@ -105,7 +105,7 @@ def get_distributed_noisy_marginals(
 
         noisy_two_way_marginals, sigma_2 = anonymize_marginals(
             copy.deepcopy(projected_two_way_marginals),
-            args_sel, delta, max_norms, sample_num_client, Flag_=2
+            args_sel, delta, max_norms, sample_num_client, 0, Flag_=2
         )
 
         # aggregate with n_i / sample_num_total
@@ -165,15 +165,16 @@ def get_distributed_noisy_marginals(
 
     # Calculate Indif score
     indif_scores = calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projection_matrix, sigma_1, sigma_2, args_sel['client_num'], sample_num_total, alpha)
-
+    
+    max_select_num = int(len(two_way_marginals) / 3)
     # Select the marginals
     #selected_marginal_sets = marginal_selection.marginal_selection_with_diff_score(marginal_sets, indif_scores, args_sel, sample_num, Flag_ = 1)
-    selected_marginal_sets = marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data_loader, marginal_config, sample_num_total, marginal_sets,  noisy_two_way_marginals, indif_scores, projection_matrix, args_sel, delta, sensitivity)
+    selected_marginal_sets = marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data_loader, marginal_config, sample_num_total, marginal_sets,  noisy_two_way_marginals, indif_scores, projection_matrix, args_sel, delta, sensitivity, max_select_num)
 
     
     print("???", len(selected_marginal_sets.keys()))
     # Add noise to the selected marginals
-    selected_marginal_sets, _ = anonymize_marginals(copy.deepcopy(selected_marginal_sets), args_sel, delta, sensitivity, sample_num_total, Flag_ = 3)
+    selected_marginal_sets, _ = anonymize_marginals(copy.deepcopy(selected_marginal_sets), args_sel, delta, sensitivity, sample_num_total, max_select_num, Flag_ = 4)
 
     # Add unselected 1-way marginals
     completed_marginals = marginal_selection.handle_isolated_attrs(marginal_sets, selected_marginal_sets, method="isolate")
@@ -181,7 +182,7 @@ def get_distributed_noisy_marginals(
     converted_marginal_sets = anonymizer.convert_selected_marginals(completed_marginals)
     
     added_one_way_marginals = converted_marginal_sets.get("priv_all_one_way", {})
-    added_one_way_marginals, _ = anonymize_marginals(copy.deepcopy(added_one_way_marginals), args_sel, delta, sensitivity, sample_num_total, Flag_ = 3)
+    added_one_way_marginals, _ = anonymize_marginals(copy.deepcopy(added_one_way_marginals), args_sel, delta, sensitivity, sample_num_total, 0, Flag_ = 1)
     converted_marginal_sets["priv_all_one_way"] = added_one_way_marginals
 
     noisy_marginals = {}
@@ -194,21 +195,38 @@ def get_distributed_noisy_marginals(
     return noisy_marginals
 
 def anonymize_marginals(
-    marginal_sets: Dict, split_method: Dict, delta: float, sensitivity: int, sample_num: int, Flag_: int
+    marginal_sets: Dict, split_method: Dict, delta: float, sensitivity: int, sample_num: int, max_num: int, Flag_: int
 ) -> Dict[Tuple[str], np.array]:
 
     noisy_marginals = {}
 
     if Flag_ == 1:
         eps = split_method['noise_to_one_way_marginal'] / split_method['client_num']
+
+        noise_param = advanced_composition.gauss_zcdp(
+            eps, delta, sensitivity, len(marginal_sets)
+        )
     elif Flag_ == 2:
         eps = split_method['noise_to_two_way_marginal'] / split_method['client_num']
+
+        noise_param = advanced_composition.gauss_zcdp(
+            eps, delta, sensitivity, len(marginal_sets)
+        )
+    elif Flag_ == 3:
+        eps = split_method['two-way-publish'] / split_method['client_num']
+
+        noise_param = advanced_composition.gauss_zcdp(
+            eps, delta, sensitivity, len(marginal_sets)
+        )
     else:
         eps = split_method['two-way-publish'] / split_method['client_num']
 
-    noise_param = advanced_composition.gauss_zcdp(
-            eps, delta, sensitivity, len(marginal_sets)
+        noise_param = advanced_composition.gauss_zcdp(
+            eps, delta, sensitivity, max_num
         )
+
+
+    
 
     for key, marginal in marginal_sets.items():
 
@@ -403,7 +421,7 @@ def calculate_real_indif(one_way_marginals, two_way_marginals, sample_num, proje
 
     return indif_scores
 
-def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data_loader, marginal_config, sample_num, marginal_sets,  noisy_two_way_marginals, Indiff_scores, projection_matrix, select_args, delta, sensitivity):
+def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data_loader, marginal_config, sample_num, marginal_sets,  noisy_two_way_marginals, Indiff_scores, projection_matrix, select_args, delta, sensitivity, max_select_num):
     """
     Selects marginals dynamically using diff_score and updates Indiff_scores with a synthesized dataset.
 
@@ -457,7 +475,7 @@ def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data
             for select_idx in select_candidate:
                 tmp_var = 2 * math.log(1 / select_args['delta'])
                 sigma_ = math.sqrt(len(two_way_keys)) / (math.sqrt(tmp_var + 2 * select_args['two-way-publish'] / select_args['client_num']) - math.sqrt(tmp_var))
-               
+                
                 gauss_error += sigma_ * np.sqrt(len(two_way_marginals[two_way_keys[select_idx]])) / sample_num
 
 
@@ -491,14 +509,14 @@ def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data
                 for selected_key in selected_marginals:
                     select_marginal_sets[selected_key] = two_way_marginals[selected_key]
                 
-                select_marginal_sets, _ = anonymize_marginals(copy.deepcopy(select_marginal_sets), select_args, delta, sensitivity, sample_num, Flag_ = 3)
+                select_marginal_sets, _ = anonymize_marginals(copy.deepcopy(select_marginal_sets), select_args, delta, sensitivity, sample_num, max_select_num, Flag_ = 4)
 
                 completed_marginals = marginal_selection.handle_isolated_attrs(marginal_sets, select_marginal_sets, method="isolate")
 
                 converted_marginal_sets = anonymizer.convert_selected_marginals(completed_marginals)
         
                 added_one_way_marginals = converted_marginal_sets.get("priv_all_one_way", {})
-                added_one_way_marginals, _ = anonymize_marginals(copy.deepcopy(added_one_way_marginals), select_args, delta, sensitivity, sample_num, Flag_ = 3)
+                added_one_way_marginals, _ = anonymize_marginals(copy.deepcopy(added_one_way_marginals), select_args, delta, sensitivity, sample_num, 0, Flag_ = 1)
                 converted_marginal_sets["priv_all_one_way"] = added_one_way_marginals
 
                 noisy_marginals = {}
@@ -578,7 +596,10 @@ def marginal_selection_with_dynamic_sampling(synthesizer, data_transformer, data
                     if first_attr in pair or second_attr in pair:
                         if Indiff_scores[pair] < Indiff_scores_up[pair]:
                             Indiff_scores[pair] = Indiff_scores_up[pair]
-
+        
+        if update_control == max_select_num:
+            break
+        
     # Convert selected marginals to the same format as marginal_sets
     selected_marginal_sets = {}
     for selected_key in selected_marginals:

@@ -3,17 +3,18 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-plt.style.use("seaborn-whitegrid")
+#plt.style.use("seaborn-whitegrid")
+sns.set_style("whitegrid")
 # -------------------------------------------------------
 color_list = sns.color_palette("deep", 8)
 fig = plt.figure(figsize=(9, 3))
 
 #--------Fedprivsyn----------
 
-y005_ndcg = [0.721336382, 0.669204382, 0.647890175, 0.620252901, 0.599003647]
+y005_ndcg = [0.747434058, 0.700961856, 0.638155733, 0.565884087, 0.515403896]
 
 # #--------Fedprivsyn_adv--------------
-y005_re = [0.644955401, 0.721426414, 0.688182445, 0.450345494, 0.658260857]
+y005_re = [0.720833207, 0.657273103, 0.648670285, 0.607118536, 0.510260739]
 
 eps_list = [5, 10, 15, 20, 25]
 
@@ -58,4 +59,4 @@ fig.tight_layout()
 fig.subplots_adjust(left=0.082, bottom=0.152, right=0.975, top=0.756, wspace=0.356, hspace=0.2)
 
 plt.show()
-fig.savefig('D:/fedsyn/Tabular-Data-Synthesis-Framework/draw_scripts/fig/vary_c_ml.pdf')
+fig.savefig('D:/Fed_Privsyn/Tabular-Data-Synthesis-Framework/draw_scripts/fig/vary_c_ml.pdf')
