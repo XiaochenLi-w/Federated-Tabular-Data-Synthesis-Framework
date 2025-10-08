@@ -1,9 +1,7 @@
-# Tabular Data Synthesis Framework
+# Federated Tabular Data Synthesis Framework
 
-[![CI](https://github.com/username/Tabular-Data-Synthesis-Framework/actions/workflows/ci.yml/badge.svg)](https://github.com/username/Tabular-Data-Synthesis-Framework/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/username/Tabular-Data-Synthesis-Framework/branch/main/graph/badge.svg)](https://codecov.io/gh/username/Tabular-Data-Synthesis-Framework)
-
-A framework for generating synthetic tabular data with differential privacy.
+This repository contains the implementation of the paper *“HoriFedSyn: Federated Differentially Private Tabular Data Synthesis.”*
+ It is developed based on the open-source project [SynMeter](https://github.com/zealscott/SynMeter) by Yuntao Du. The repository supports **horizontal federated** tabular data synthesis and includes implementations of the centralized algorithm [PrivSyn](https://www.usenix.org/system/files/sec21-zhang-zhikun.pdf) and two federated versions, FedPrivSyn and AdvFedPrivSyn.
 
 ## Prerequisites
 - Python 3.9+ recommended
@@ -24,20 +22,83 @@ A framework for generating synthetic tabular data with differential privacy.
    ```
 
 ## Usage
-Below are two key scripts used to train and evaluate a synthesizer model.
+Below are key scripts used to train and evaluate a synthesizer model.
 
 ### Training
+
+- Run PrivSyn synthesis algorithm.
+
 ```bash
 python scripts/train_synthesizer.py -d adult -m privsyn
 ```
-Change adult to the dataset name you want to train on, and privsyn to a different synthesizer name if desired.
+- Run FedPrivSyn synthesis algorithm.
 
+```bash
+python scripts/train_fed_synthesizer.py -d adult -m fed_privsyn
+```
+
+- Run AdvFedPrivSyn synthesis algorithm.
+
+```bash
+python scripts/train_fed_synthesizer_adaptive.py -d adult -m fed_privsyn_adv
+```
+
+Change adult to the dataset name you want to train on.
 
 ### Evaluating
+
+- Evaluate utility of PrivSyn
+
 ```bash
 python scripts/eval_utility.py -d adult -m privsyn
 ```
-This step measures how closely the synthesized data matches the original data’s statistics.
+- Evaluate utility of FedPrivSyn
+
+```bash
+python scripts/eval_fed_utility.py -d adult -m fed_privsyn
+```
+
+- Evaluate utility of AdvFedPrivSyn
+
+```bash
+python scripts/eval_fed_adaptive_utility.py -d adult -m fed_privsyn_adv
+```
+
+- Evaluate Fidelity of PrivSyn
+
+```bash
+python scripts/eval_fidelity.py -d adult -m privsyn
+```
+
+- Evaluate Fidelity of FedPrivSyn
+
+```bash
+python scripts/eval_fed_fidelity.py -d adult -m fed_privsyn
+```
+
+- Evaluate Fidelity of AdvFedPrivSyn
+
+```bash
+python scripts/eval_fed_adaptive_fidelity.py -d adult -m fed_privsyn_adv
+```
+
+- Evaluate ML of PrivSyn
+
+```bash
+python scripts/eval_ml.py -d adult -m privsyn
+```
+
+- Evaluate ML of FedPrivSyn
+
+```bash
+python scripts/eval_fed_ml.py -d adult -m fed_privsyn
+```
+
+- Evaluate ML of AdvFedPrivSyn
+
+```bash
+python scripts/eval_fed_adaptive_ml.py -d adult -m fed_privsyn_adv
+```
 
 ## Docker Usage
 
