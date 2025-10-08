@@ -12,7 +12,7 @@ This repository contains the implementation of the paper *“HoriFedSyn: Federat
 1. **Clone** the repository:
 
    ```bash
-   git clone https://github.com/username/Tabular-Data-Synthesis-Framework.git
+   git clone https://github.com/username/Federated-Tabular-Data-Synthesis-Framework.git
    ```
 
 2. **Install** dependencies:
