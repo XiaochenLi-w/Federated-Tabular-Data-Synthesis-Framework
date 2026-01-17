@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     #AdvPrivSyn
     df_real, df_adv = load_datasets(real_path, gen_path_adv)
-    plot_numeric_distribution(df_real, df_adv, target_attr, axes[2], "AdvPrivSyn", method="kde")
+    plot_numeric_distribution(df_real, df_adv, target_attr, axes[2], "AdaFedPrivSyn", method="kde")
 
     plt.tight_layout()
     plt.show()

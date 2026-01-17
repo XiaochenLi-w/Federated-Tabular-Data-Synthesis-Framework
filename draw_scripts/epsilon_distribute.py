@@ -4,7 +4,7 @@ import pandas as pd
 
 # ===== 配置部分 =====
 metrics = ["Query Error", "Fidelity Error", "ML Efficiency"]
-methods = ["FedPrivSyn(80%)", "FedPrivSyn(40%)", "AdvFedPrivSyn(80%)", "AdvFedPrivSyn(40%)"]
+methods = ["FedPrivSyn(80%)", "FedPrivSyn(40%)", "AdaFedPrivSyn(80%)", "AdaFedPrivSyn(40%)"]
 epsilons = [0.2, 1, 5]
 
 # ===== 在这里填你的实验结果 =====
@@ -12,20 +12,20 @@ results = {
     "Query Error": {
         "FedPrivSyn(80%)": [0.054, 0.041, 0.018],
         "FedPrivSyn(40%)": [0.050380367, 0.040376887, 0.025],
-        "AdvFedPrivSyn(80%)": [0.056, 0.029, 0.015],
-        "AdvFedPrivSyn(40%)": [0.037228569, 0.028181227, 0.013],
+        "AdaFedPrivSyn(80%)": [0.056, 0.029, 0.015],
+        "AdaFedPrivSyn(40%)": [0.037228569, 0.028181227, 0.013],
     },
     "Fidelity Error": {
         "FedPrivSyn(80%)": [0.878, 0.534, 0.27],
         "FedPrivSyn(40%)": [0.535225964, 0.492590347, 0.375],
-        "AdvFedPrivSyn(80%)": [0.837, 0.393, 0.203],
-        "AdvFedPrivSyn(40%)": [0.475327123, 0.42201696, 0.17],
+        "AdaFedPrivSyn(80%)": [0.837, 0.393, 0.203],
+        "AdaFedPrivSyn(40%)": [0.475327123, 0.42201696, 0.17],
     },
     "ML Efficiency": {
         "FedPrivSyn(80%)": [0.424, 0.559, 0.753],
         "FedPrivSyn(40%)": [0.453116058, 0.640734783, 0.747],
-        "AdvFedPrivSyn(80%)": [0.561, 0.593, 0.632],
-        "AdvFedPrivSyn(40%)": [0.381308571, 0.58795565, 0.721],
+        "AdaFedPrivSyn(80%)": [0.561, 0.593, 0.632],
+        "AdaFedPrivSyn(40%)": [0.381308571, 0.58795565, 0.721],
     }
 }
 

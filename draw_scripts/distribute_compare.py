@@ -150,7 +150,7 @@ if __name__ == "__main__":
 
     # AdvPrivSyn
     df_real, df_adv = load_datasets(real_path, gen_path_adv)
-    plot_pca_projection(df_real, df_adv, numeric_attrs, pca, axes[2], "AdvPrivSyn", color_list)
+    plot_pca_projection(df_real, df_adv, numeric_attrs, pca, axes[2], "AdaFedPrivSyn", color_list)
 
 
     plt.tight_layout()

@@ -44,7 +44,7 @@ ax2.bar(x + width, Direct_re, width=width, color=color_list[1], label='DirectLdp
 plt.xticks(x + 0.25, x_label, rotation=0)
 ax2.set_ylabel("Accuracy", fontsize=14)
 ax2.set_xlabel("Different evaluations", fontsize=12)
-ax2.set_title('AdvFedPrivSyn')
+ax2.set_title('AdaFedPrivSyn')
 ax2.set_ylim(0, 1.0) 
 
 # fig.legend(loc='center', bbox_to_anchor=(0.25, 0.78), ncol=1, prop={'size': 10}, frameon=True, edgecolor='gray')
