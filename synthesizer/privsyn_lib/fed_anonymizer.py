@@ -109,86 +109,15 @@ def get_distributed_noisy_marginals(
     noisy_two_way_marginals = aggregated_two_way
 
     # ---------------- compute alpha ---------------- #
-    #alpha = sum([n_i ** 2 for n_i in sizes]) / (sample_num_total ** 2)
+    
     alpha = 1 / (sample_num_total ** 2) # we add noise to count instead of frequency
 
-    # # Generate marginals
-    # marginal_sets = data_loader.generate_marginal_by_config(
-    #     data_loader.private_data, marginal_config
-    # )
-
-    # args_sel = {}
-    # args_sel['noise_to_one_way_marginal'] = split_method["noise_to_one_way_marginal"]
-    # args_sel['noise_to_two_way_marginal'] = split_method["noise_to_two_way_marginal"]
-    # args_sel['two-way-publish'] = split_method["two-way-publish"]
-    # args_sel['client_num'] = split_method["client_num"]
-    # args_sel['delta'] = split_method["delta"]
-    # args_sel['marg_sel_threshold'] = 0.1
-
-    # #----------------Simulate the distributed collaboration process-------------------#
-
-    # # Compute all one-way marginals and two-way marginals on User side. (In practice, these are distributed across multiple clients)
-    # one_way_marginals = marginal_sets.get("priv_all_one_way", {})
-    # two_way_marginals = marginal_sets.get("priv_all_two_way", {})
-
-    # # Get any marginal from one_way_marginals
-    # any_key = next(iter(one_way_marginals))  # Get a random key
-    # sample_num = int(np.sum(one_way_marginals[any_key]))  # Compute sum of values
-    
-    # # indif_scores_list = []
-    
-    # # icoun = 0
-    # # for _ in range(20):
-
-    # # Add noise to all one-way marginals
-    # noisy_one_way_marginals, sigma_1 = anonymize_marginals(copy.deepcopy(one_way_marginals), args_sel, delta, sensitivity, sample_num, Flag_ = 1)
-    
-    # # Map 2-way marginals onto a lower-dimensional space
-    # k = 10
-    # projected_two_way_marginals, projection_matrix = project_marginals(two_way_marginals, k)
-    
-    # max_norms = -1000000
-
-    # for _, P_ab in projection_matrix.items():
-    #     # Compute row-wise Euclidean norms
-    #     row_norms = np.sqrt(np.sum(P_ab**2, axis=1))
-    #     # Take the maximum of these norms
-    #     tmp = np.max(row_norms)
-    #     if  tmp > max_norms:
-    #         max_norms = tmp
-
-    # noisy_two_way_marginals, sigma_2 = anonymize_marginals(copy.deepcopy(projected_two_way_marginals), args_sel, delta, max_norms, sample_num, Flag_ = 2)
+    marginal_sets = data_loader.generate_marginal_by_config(
+        data_loader.private_data, marginal_config
+    )
 
     # Calculate Indif score
     indif_scores = calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projection_matrix, sigma_1, sigma_2, c, sample_num_total, alpha)
-
-    # #-------------For test---------------------#
-    #     icoun += 1
-    #     print("It's", icoun, ":", indif_scores)
-    #     indif_scores_list.append(indif_scores)
-    
-    # # Initialize a dictionary to store the values for each key
-    # key_values = {}
-
-    # true_indif_score = calculate_real_indif(one_way_marginals, projected_two_way_marginals, sample_num, projection_matrix)
-
-    # # Collect the values for each key across all indif_scores
-    # for indif_score in indif_scores_list:
-    #     for key, value in indif_score.items():
-    #         if key not in key_values:
-    #             key_values[key] = []  # Initialize the list for the key
-    #         key_values[key].append(value - true_indif_score[key])
-
-    # # Now calculate the variance for each key
-    # variances = {}
-
-    # for key, values in key_values.items():
-    #     # Calculate variance for the values of each key
-    #     variances[key] = np.var(values, ddof=1)  # ddof=1 for sample variance
-
-    # # Print the variances for each key
-    # for key, variance in variances.items():
-    #     print(f"Variance for {key}: {variance}")
 
     # Select the marginals
     selected_marginal_sets = marginal_selection.marginal_selection_with_diff_score(marginal_sets, indif_scores, args_sel, sample_num_total, Flag_ = 1)
@@ -222,9 +151,9 @@ def anonymize_marginals(
     noisy_marginals = {}
 
     if Flag_ == 1:
-        eps = split_method['noise_to_one_way_marginal'] / split_method['client_num']
+        eps = split_method['noise_to_one_way_marginal']
     elif Flag_ == 2:
-        eps = split_method['noise_to_two_way_marginal'] / split_method['client_num']
+        eps = split_method['noise_to_two_way_marginal']
     else:
         eps = split_method['two-way-publish'] / split_method['client_num']
 
@@ -338,7 +267,6 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projec
         row_norms = np.sqrt(np.sum(P_ab**2, axis=1))
         sensitivity_of_P_ab = np.max(row_norms)
 
-        #projected_independent_distribution = independent_distribution_flat @ P_ab - sigma_2 * sensitivity_of_P_ab ** 2 / sample_num ** 2
         projected_independent_distribution = independent_distribution_flat @ P_ab
 
         # Debias the Indif_score
@@ -347,13 +275,7 @@ def calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projec
 
         Ep = s_a * s_b
 
-        #indif_score = np.sqrt((np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 - sigma_1 / sample_num ** 2) / Ep)
-        
         cols = P_ab.shape[1]
-
-        # indif_score = np.sqrt((np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 
-        # - c ** 2 * sigma_1 * (s_b * np.linalg.norm(norm_one_way_attr1) ** 2 + s_a * np.linalg.norm(norm_one_way_attr2) ** 2) * np.linalg.norm(P_ab) ** 2 / (sample_num ** 2)
-        # - c ** 2 * sigma_2 * cols ** 2 / sample_num ** 2 + np.power(c, 4) * sigma_1 ** 2 * s_b ** 2 * s_a ** 2 / (np.power(sample_num, 4))) / Ep)
         
         indif_score = np.sqrt(np.linalg.norm((real_marginal.values - projected_independent_distribution)) ** 2 
         - cols * alpha * sigma_2 - alpha * sigma_1 * (s_b * np.linalg.norm(norm_one_way_attr1) ** 2 + s_a * np.linalg.norm(norm_one_way_attr2) ** 2) + s_a * s_b * alpha ** 2 * sigma_1 ** 2)

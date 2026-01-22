@@ -15,7 +15,7 @@ privacy_result = "./exp/insurance/fed_privsyn/privacy_result.csv"
 utility_result = "./exp/insurance/fed_privsyn/utility_result.csv"
 
 [model_params]
-epsilon = 5 # privacy budget
+epsilon = 0.2 # privacy budget
 delta = 1e-10
 max_bins = 100
 update_iterations = 50

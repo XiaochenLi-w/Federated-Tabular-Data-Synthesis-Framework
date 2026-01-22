@@ -162,6 +162,10 @@ def get_distributed_noisy_marginals(
     #         max_norms = tmp
 
     # noisy_two_way_marginals, sigma_2 = anonymize_marginals(copy.deepcopy(projected_two_way_marginals), args_sel, delta, max_norms, sample_num, Flag_ = 2)
+    marginal_sets = data_loader.generate_marginal_by_config(
+        data_loader.private_data, marginal_config
+    )
+
 
     # Calculate Indif score
     indif_scores = calculate_indif_fed(noisy_one_way_marginals, noisy_two_way_marginals, projection_matrix, sigma_1, sigma_2, args_sel['client_num'], sample_num_total, alpha)
@@ -201,13 +205,13 @@ def anonymize_marginals(
     noisy_marginals = {}
 
     if Flag_ == 1:
-        eps = split_method['noise_to_one_way_marginal'] / split_method['client_num']
+        eps = split_method['noise_to_one_way_marginal']
 
         noise_param = advanced_composition.gauss_zcdp(
             eps, delta, sensitivity, len(marginal_sets)
         )
     elif Flag_ == 2:
-        eps = split_method['noise_to_two_way_marginal'] / split_method['client_num']
+        eps = split_method['noise_to_two_way_marginal']
 
         noise_param = advanced_composition.gauss_zcdp(
             eps, delta, sensitivity, len(marginal_sets)
