@@ -11,10 +11,11 @@ fig = plt.figure(figsize=(9, 3))
 
 #--------Fedprivsyn----------
 
-y005_ndcg = [0.374654339, 0.532836565, 0.574181382, 0.585152827, 0.617095851]
+#y005_ndcg = [0.374654339, 0.532836565, 0.574181382, 0.585152827, 0.617095851]
+y005_ndcg = [0.09110832993190565, 0.12757686732607487, 0.1817117501496114, 0.2743546002978306, 0.33292274642302483]
 
 # #--------Fedprivsyn_adv--------------
-y005_re = [0.170287675, 0.368040242, 0.613503117, 0.661294208, 0.653206908]
+y005_re = [0.040015061857639346, 0.07292839439784021, 0.10114879845220275, 0.12753835421148788, 0.1387309125892273]
 
 eps_list = [5, 10, 15, 20, 25]
 
@@ -56,7 +57,8 @@ l1 = ax2.plot(eps_list,
               markerfacecolor='none')
 
 fig.tight_layout()
-fig.subplots_adjust(left=0.082, bottom=0.152, right=0.975, top=0.756, wspace=0.356, hspace=0.2)
+#fig.subplots_adjust(left=0.082, bottom=0.152, right=0.975, top=0.756, wspace=0.356, hspace=0.2)
+fig.subplots_adjust(left=0.100, bottom=0.160, right=0.975, top=0.700, wspace=0.300, hspace=0.2)
 
 plt.show()
-fig.savefig('D:/Fed_Privsyn/Tabular-Data-Synthesis-Framework/draw_scripts/fig/vary_c_fidelity.pdf')
+fig.savefig('./draw_scripts/fig/vary_c_fidelity.pdf')

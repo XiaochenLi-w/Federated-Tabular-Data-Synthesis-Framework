@@ -44,7 +44,7 @@ def get_distributed_noisy_marginals(
     data_splits, sizes, sample_num_total = _split_records(
     df=full_data,
     c=c,
-    dist_method=dist_method,  # support 'uniform' and 'random'
+    dist_method=dist_method,  # support 'uniform', 'random', 'label'
     )
 
     # use n_i and sample_num_total as weight
@@ -347,47 +347,99 @@ def calculate_real_indif(one_way_marginals, two_way_marginals, sample_num, proje
 
     return indif_scores
 
-def _split_records(df: pd.DataFrame, c: int, dist_method: str):
+
+def _split_records(
+    df: pd.DataFrame,
+    c: int,
+    dist_method: str,
+    label_col: str = "label",
+):
     """
-    将 DataFrame 随机打乱后切分为 c 份，返回 (splits, sizes, total_num)
+    将 DataFrame 切分为 c 份，返回 (splits, sizes, total_num)
+
     支持:
-      - 均匀随机分布: 每份尽量相等 (array_split)
-      - 随机分配: 每份长度不同, 但总和为 total_num (随机切分点)
+      - uniform: 尽量等分
+      - random: 随机大小
+      - label: 按 label 切分，每个 client 只包含单一 label
     """
     if not isinstance(df, pd.DataFrame):
         raise TypeError("data_loader.private_data must be pandas.DataFrame")
 
     total_num = len(df)
     if c <= 0:
-        raise ValueError("c must be integer")
+        raise ValueError("c must be positive integer")
     if c > total_num:
-        raise ValueError("c must be smaller than totall num")
+        raise ValueError("c must be smaller than total num")
 
-    # 兼容中英文写法
     dm = dist_method.lower()
+
     if dm == "uniform":
-        # 先打乱行位置，再尽量等分
         perm = np.random.permutation(total_num)
-        idx_chunks = np.array_split(perm, c)          # 近似等分 (大小相差不超过 1)
-        splits = [df.iloc[idx_chunk] for idx_chunk in idx_chunks]
+        idx_chunks = np.array_split(perm, c)
+        splits = [df.iloc[idx] for idx in idx_chunks]
         sizes = [len(s) for s in splits]
 
     elif dm == "random":
-        # 生成 c-1 个不重复切分点，保证每份 >= 1
         cuts = sorted(np.random.choice(np.arange(1, total_num), size=c-1, replace=False))
         bounds = [0] + cuts + [total_num]
         sizes = [bounds[i+1] - bounds[i] for i in range(c)]
 
-        # 再打乱整体索引，按 sizes 逐段切
         perm = np.random.permutation(total_num)
         splits = []
         start = 0
         for sz in sizes:
             splits.append(df.iloc[perm[start:start+sz]])
             start += sz
-    else:
-        raise ValueError("dist_method must be 'uniform' or 'random'")
 
-    # 防御式检查
-    assert sum(sizes) == total_num, "切分总数与原数据不一致。"
+    elif dm == "label":
+        if label_col not in df.columns:
+            raise ValueError(f"label column `{label_col}` not found in DataFrame")
+
+        # 按 label 分组
+        label_groups = {
+            k: v.sample(frac=1).reset_index(drop=True)  # shuffle
+            for k, v in df.groupby(label_col)
+        }
+
+        labels = list(label_groups.keys())
+        num_labels = len(labels)
+
+        if num_labels > c:
+            raise ValueError("number of labels cannot exceed client number")
+
+        # client 按照 label 分配
+        client_alloc = []
+        base = c // num_labels
+        rem = c % num_labels
+        for i in range(num_labels):
+            cnt = base + (1 if i < rem else 0)
+            client_alloc.append(cnt)
+
+        splits = []
+        sizes = []
+
+        for label, num_clients in zip(labels, client_alloc):
+            group_df = label_groups[label]
+            n = len(group_df)
+
+            if num_clients > n:
+                raise ValueError(
+                    f"Label `{label}` has only {n} samples, "
+                    f"cannot split into {num_clients} clients"
+                )
+
+            perm = np.random.permutation(n)
+            idx_chunks = np.array_split(perm, num_clients)
+
+            for idx in idx_chunks:
+                part = group_df.iloc[idx]
+                splits.append(part)
+                sizes.append(len(part))
+
+        assert len(splits) == c, "Number of splits != client number"
+
+    else:
+        raise ValueError("dist_method must be 'uniform', 'random', or 'label'")
+
+    assert sum(sizes) == total_num, "切分总数与原数据不一致"
     return splits, sizes, total_num
