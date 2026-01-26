@@ -23,7 +23,7 @@ noise_to_one_way_marginal = 0.3
 noise_to_two_way_marginal = 0.3
 two-way-publish = 0.4
 client_num = 5
-disttype = "label"
+disttype = "uniform"
 
 
 [sample_params]

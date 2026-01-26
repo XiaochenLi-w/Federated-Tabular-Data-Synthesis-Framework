@@ -7,7 +7,6 @@ metrics = ["Query Error", "Fidelity Error", "ML Efficiency"]
 methods = ["FedPrivSyn(80%)", "FedPrivSyn(40%)", "AdaFedPrivSyn(80%)", "AdaFedPrivSyn(40%)"]
 epsilons = [0.2, 1, 5]
 
-# ===== 在这里填你的实验结果 =====
 results = {
     "Query Error": {
         "FedPrivSyn(80%)": [0.054, 0.041, 0.018],

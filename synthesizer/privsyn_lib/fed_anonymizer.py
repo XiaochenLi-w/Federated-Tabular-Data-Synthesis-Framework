@@ -76,7 +76,7 @@ def get_distributed_noisy_marginals(
             args_sel, delta, sensitivity, sample_num_client, Flag_=1
         )
 
-        k = 10
+        k = 25
         projected_two_way_marginals, projection_matrix = project_marginals(two_way_marginals, k)
 
         max_norms = -1e9

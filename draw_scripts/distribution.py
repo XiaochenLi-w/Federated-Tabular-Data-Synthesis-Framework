@@ -54,7 +54,7 @@ ax2.set_title('AdaFedPrivSyn')
 ax2.set_ylim(0, 1.0) 
 
 # fig.legend(loc='center', bbox_to_anchor=(0.25, 0.78), ncol=1, prop={'size': 10}, frameon=True, edgecolor='gray')
-legend_list = ['Uniform Distributed', 'Random Distributed', 'Biased Distributed']
+legend_list = ['Biased Distributed', 'Random Distributed', 'Uniform Distributed']
 fig.legend([l1, l2, l3], labels=legend_list, loc='upper center', bbox_to_anchor=(0.5, 0.99),
            ncol=4, prop={'size': 12}, frameon=True, edgecolor='gray')
 fig.tight_layout()
